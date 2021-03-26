@@ -3,8 +3,9 @@ from tkinter import messagebox
 import CounterClass as CC
 import UImethods as UIM
 
+
 class Ui:
-    def __init__(self, saves, gui_chance=None):
+    def __init__(self, saves, _gui_chance=None):
         # all counters are in saves
         self.counters = saves
 
@@ -88,10 +89,17 @@ class Ui:
         # open child window with the current value of the chosen Counter object
         def changeCounter(_event):
             overlay.attributes('-transparentcolor', '')
+            self.gui2.root.attributes('-transparentcolor', '')
+
             self.overlayCount.config(bg=self.configs[self.configNmr][2])
+            self.gui2.chance.config(bg=self.configs[self.configNmr][2])
+
             if self.configs[self.configNmr][0]:
                 overlay.attributes('-transparentcolor', self.overlayCount['bg'])
+                self.gui2.root.attributes('-transparentcolor', self.gui2.chance['bg'])
+
             self.overlayCount.config(fg=self.configs[self.configNmr][1])
+            self.gui2.chance.config(fg=self.configs[self.configNmr][1])
             # roll over to the next config for next click
             self.configNmr += 1
             self.configNmr %= len(self.configs)
@@ -99,6 +107,7 @@ class Ui:
         def exitOverlay(_event):
             self.save()
             overlay.destroy()
+            self.gui2.root.withdraw()
 
         # call function to close any other child windows
         self.closeToplevel()
@@ -117,6 +126,8 @@ class Ui:
         overlay.bind("<KeyRelease>", self.keyUp)
         overlay.bind("<*>", changeCounter)
         overlay.bind("</>", lambda i=True: self.gui2.update(self.counter, chainLost=i))
+
+        # when escape is pressed with the overlay active close all the overlays (including the extra feature window)
         overlay.bind("<Escape>", exitOverlay)
 
     def deleteCounter(self):
@@ -246,7 +257,6 @@ class Ui:
         save_file = open('methods.txt', 'w')
         for m in self.gui2.method_list:
             save_file.write(f'{m.method_id} {m.odds}\n')
-
 
     def saveQuit(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):

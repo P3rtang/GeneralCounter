@@ -7,40 +7,36 @@ import CounterClass
 
 
 def dexnavChanceInc(step, neg_chance, chain=0):
-    print(chain)
-    if chain != (50 or 100):
-        if step <= 100:
-            step_chance = step * 6 / 100 / 10000
-        elif step <= 200:
-            step_chance = ((step - 100) * 2 + 600) / 100 / 10000
-        else:
-            step_chance = (step - 200 + 800) / 100 / 10000
+    if step <= 100:
+        step_chance = step * 6 / 100 / 10000
+    elif step <= 200:
+        step_chance = ((step - 100) * 2 + 600) / 100 / 10000
+    else:
+        step_chance = (step - 200 + 800) / 100 / 10000
 
-        if chain == 50:
-            neg_chance *= (1 - step_chance) ** 5
-        elif chain == 100:
-            neg_chance *= (1 - step_chance) ** 10
-        else:
-            neg_chance *= (1 - step_chance)
+    if chain == 50:
+        neg_chance *= (1 - step_chance) ** 5
+    elif chain == 100:
+        neg_chance *= (1 - step_chance) ** 10
+    else:
+        neg_chance *= (1 - step_chance)
     return neg_chance
 
 
 def dexnavChanceDec(step, neg_chance, chain=0):
-    print(chain)
-    if chain != (50 or 100):
-        if step <= 100:
-            step_chance = step * 6 / 100 / 10000
-        elif step <= 200:
-            step_chance = ((step - 100) * 2 + 600) / 100 / 10000
-        else:
-            step_chance = (step - 200 + 800) / 100 / 10000
+    if step < 100:
+        step_chance = step * 6 / 100 / 10000
+    elif step < 200:
+        step_chance = ((step - 100) * 2 + 600) / 100 / 10000
+    else:
+        step_chance = (step - 200 + 800) / 100 / 10000
 
-        if chain == 50:
-            neg_chance /= (1 - step_chance) ** 5
-        elif chain == 100:
-            neg_chance /= (1 - step_chance) ** 10
-        else:
-            neg_chance /= (1 - step_chance)
+    if chain == 49:
+        neg_chance /= (1 - step_chance) ** 5
+    elif chain == 99:
+        neg_chance /= (1 - step_chance) ** 10
+    else:
+        neg_chance /= (1 - step_chance)
     return neg_chance
 
 
@@ -48,7 +44,7 @@ class UiMethods:
     def __init__(self, counter_list):
         methods = CR.CounterRead('methods.txt')
         self.method_list = []
-        self.chain = 0
+        self.chain = 1
         self.font = []
         for n in range(1, 101):
             self.font.append(("Helvetica", f"{n}", "bold"))
@@ -67,7 +63,7 @@ class UiMethods:
         self.mainFrame = Frame(self.root)
         self.mainFrame.pack()
 
-        self.chance = Label(self.mainFrame, text=0, font=("Helvetica", "25", "bold"))
+        self.chance = Label(self.mainFrame, text=0, font=("Helvetica", "25"))
         self.chance.pack()
 
         self.root.overrideredirect(False)  # windowless
@@ -107,10 +103,8 @@ class UiMethods:
 
         elif dec:
             self.chain -= 1
-            self.chain %= 100
         else:
             self.chain += 1
-            self.chain %= 100
 
         # normal random encounter with odds store in method.odds method is stored in method_list
         if method == 0:
@@ -127,6 +121,7 @@ class UiMethods:
 
         elif method == 1 and chainLost:
             cur_chance = self.method_list[counter.id - 1].odds
+            self.chain %= 100
 
         else:
             cur_chance = 'ERROR'
@@ -135,4 +130,10 @@ class UiMethods:
 
 
 if __name__ == '__main__':
-    chanceUI = UiMethods(None)
+    neg_chance = 1
+    chain = 0
+    for n in range(1, 1000):
+        chain += 1
+        neg_chance = dexnavChanceInc(n, neg_chance, chain)
+        print(chain, neg_chance)
+        chain %= 100
