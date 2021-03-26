@@ -100,7 +100,6 @@ class UiMethods:
         method = self.method_list[counter.id - 1].method_id
         if chainLost:
             self.chain = 0
-
         elif dec:
             self.chain -= 1
         else:
@@ -109,24 +108,27 @@ class UiMethods:
         # normal random encounter with odds store in method.odds method is stored in method_list
         if method == 0:
             cur_chance = 1 - (1 - 1 / self.method_list[counter.id - 1].odds) ** counter.value
-        elif method == 1 and not dec and not chainLost:
-            cur_chance = dexnavChanceInc(counter.value, self.method_list[counter.id - 1].odds, self.chain)
+            self.chance.config(text=f'{round(cur_chance * 100, 3)}')
 
-            self.method_list[counter.id - 1].odds = cur_chance
+        elif method == 1:
+            if not dec and not chainLost:
+                cur_chance = dexnavChanceInc(counter.value, self.method_list[counter.id - 1].odds, self.chain)
 
-        elif method == 1 and dec and not chainLost:
-            cur_chance = dexnavChanceDec(counter.value, self.method_list[counter.id - 1].odds, self.chain)
+                self.method_list[counter.id - 1].odds = cur_chance
 
-            self.method_list[counter.id - 1].odds = cur_chance
+            if dec and not chainLost:
+                cur_chance = dexnavChanceDec(counter.value, self.method_list[counter.id - 1].odds, self.chain)
 
-        elif method == 1 and chainLost:
-            cur_chance = self.method_list[counter.id - 1].odds
-            self.chain %= 100
+                self.method_list[counter.id - 1].odds = cur_chance
 
-        else:
-            cur_chance = 'ERROR'
+            if chainLost:
+                cur_chance = self.method_list[counter.id - 1].odds
+                self.chain %= 100
 
-        self.chance.config(text=f'{round((1 - cur_chance) * 100, 3)} - {self.chain}')
+            else:
+                cur_chance = 'ERROR'
+
+            self.chance.config(text=f'{round((1 - cur_chance) * 100, 3)} - {self.chain}')
 
 
 if __name__ == '__main__':
