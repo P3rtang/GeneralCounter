@@ -1,10 +1,10 @@
 from tkinter import *
 from tkinter import messagebox
 import CounterClass as CC
-
+import UImethods as UIM
 
 class Ui:
-    def __init__(self, saves):
+    def __init__(self, saves, gui_chance=None):
         # all counters are in saves
         self.counters = saves
 
@@ -12,6 +12,13 @@ class Ui:
         self.counterIndex = 0
         # active counter object
         self.counter = self.counters[self.counterIndex]
+
+        # make and configure the optional window for extra features
+        self.gui2 = UIM.UiMethods(self.counters)
+
+        self.gui2.root.overrideredirect(True)
+        self.gui2.root.wm_attributes("-topmost", True)
+        self.gui2.root.withdraw()
 
         # make al font sizes op to 100
         self.font = []
@@ -96,9 +103,6 @@ class Ui:
         # call function to close any other child windows
         self.closeToplevel()
 
-        # save the selected counter as a single Counter object
-        self.counter = self.counters[self.counterIndex]
-
         overlay = Toplevel(self.rootW)
         self.overlayCount = Label(overlay,
                                   text=str(self.counter.value),
@@ -112,6 +116,7 @@ class Ui:
 
         overlay.bind("<KeyRelease>", self.keyUp)
         overlay.bind("<*>", changeCounter)
+        overlay.bind("</>", lambda i=True: self.gui2.update(self.counter, chainLost=i))
         overlay.bind("<Escape>", exitOverlay)
 
     def deleteCounter(self):
@@ -155,16 +160,32 @@ class Ui:
     def openOptions(self, _event):
         # save and apply chosen options
         def applyOption():
+            # debug code
             print(step_size_entry.get(), set_count.get())
+            # changing the counter values
             self.counter.jump = int(step_size_entry.get()) if step_size_entry.get() else 1
             self.counter.value = int(set_count.get()) if set_count.get() else self.counter.value
+            # save all counters to 'counters.txt'
             self.save()
+            self.score.config(text=self.counter.value, font=self.font[75])
             self.selectCounter()
 
+        def showPokWindow():
+            if show_pokemon['text'] == 'pokemon chance OFF':
+                self.gui2.root.deiconify()
+                self.gui2.root.focus_force()
+                show_pokemon.config(text='pokemon chance ON')
+            else:
+                self.gui2.root.withdraw()
+                show_pokemon.config(text='pokemon chance OFF')
+
         # check if a selection is made otherwise don't open option menu
-        if self.counter.id:
+        if self.selection:
             print(self.counter.id)
             option_menu = Toplevel(self.rootW)
+
+            show_pokemon = Button(option_menu, text='pokemon chance OFF', font=self.font[16], command=showPokWindow)
+            show_pokemon.pack(pady=(0, 20), fill='x')
 
             Label(option_menu, text='set step-size', font=self.font[20]).pack()
             step_size_entry = Entry(option_menu, font=self.font[16], justify='center')
@@ -180,8 +201,8 @@ class Ui:
             cancel = Button(button_frame, text='CANCEL', font=self.font[16], command=option_menu.destroy)
             apply = Button(button_frame, text='APPLY', font=self.font[16], command=applyOption)
 
-            cancel.grid(row=0, column=0, ipadx=5)
-            apply.grid(row=0, column=1, ipadx=15)
+            cancel.grid(row=0, column=0, ipadx=8, sticky='w')
+            apply.grid(row=0, column=1, ipadx=17, sticky='e')
 
     def callback(self, event):
         if event.widget.curselection() != self.selection:
@@ -200,12 +221,20 @@ class Ui:
             else:
                 self.score.configure(text=data, font=self.font[60])
 
+            # save the selected counter as a single Counter object
+            self.counter = self.counters[self.counterIndex]
+            print(self.counter.id)
+            self.gui2.update(self.counter, chainLost=True)
+            self.selection = event.widget.curselection()
+
     def keyUp(self, char):
         print(f'pressed {char.char}')
         if char.char == '+' or char.char == ' ':
             self.counter.value += self.counter.jump
+            self.gui2.update(self.counter)
         elif char.char == '-':
             self.counter.value -= self.counter.jump
+            self.gui2.update(self.counter, dec=True)
         self.score.config(text=str(self.counter.value), font=self.font[75])
         self.overlayCount.config(text=str(self.counter.value), font=self.font[75])
 
@@ -213,8 +242,14 @@ class Ui:
         save_file = open('counters.txt', 'w')
         for c in self.counters:
             save_file.write(f'{c.id} {c.name.replace(" ", "_")} {c.value} {c.jump}\n')
+        save_file.close()
+        save_file = open('methods.txt', 'w')
+        for m in self.gui2.method_list:
+            save_file.write(f'{m.method_id} {m.odds}\n')
+
 
     def saveQuit(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.save()
             self.rootW.destroy()
+            self.gui2.root.destroy()
