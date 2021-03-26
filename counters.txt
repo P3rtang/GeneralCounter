@@ -1,2 +1,2 @@
-1 mareep_(heartgold) 960 1
+1 mareep_(heartgold) 1000 1
 2 regieleki_(sword) 6155 1

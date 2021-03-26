@@ -19,16 +19,18 @@ class Ui:
             self.font.append(("Helvetica", f"{n}", "bold"))
 
         self.selection = None
-        self.configs = [(0.1, 'red'), (1, 'black')]
-        self.configNmr = 0
 
         # start tkinter rootW is main root
         self.rootW = Tk()
         self.height = 14
         self.width = 75
 
-        self.configs = [(0.1, 'red'), (1, 'black')]
-        self.configNmr = 0
+        # configs stored as tuple of 3 elements
+        # 1: transparent or not
+        # 2: foreground color (color of the text)
+        # 3: background color (best left white when using transparent
+        self.configs = [(True, 'red', '#FF0001'), (True, '#5280e9', '#5280e8'), (False, 'black', 'white')]
+        self.configNmr = 2
         # make body for easy addition and resizing in main window
         self.body = Frame(self.rootW)
         self.body.pack()
@@ -39,15 +41,17 @@ class Ui:
 
         self.counterList.grid(row=0, rowspan=5)
 
+        # gives a frame to store the label with the count of the selected counter
         self.scoreFrame = Frame(self.body, borderwidth=1, relief="sunken",
                                 width=300, height=280)
         self.scoreFrame.grid(row=0, column=1, rowspan=2)
         self.scoreFrame.pack_propagate(False)
 
-        self.overlayCount = Label(self.rootW, text=0, font=self.font[75])
-
+        # Label with the actual current count of the selected counter
         self.score = Label(self.scoreFrame, text='None Selected', font=self.font[24])
         self.score.pack(fill="both", expand=True)
+
+        self.overlayCount = Label(self.rootW, text=0, font=self.font[75])
 
         self.select = Button(self.body, font=self.font[24], command=self.selectCounter, text='SELECT')
         self.select.grid(row=2, column=1, pady=(5, 0), padx=10)
@@ -76,7 +80,10 @@ class Ui:
     def selectCounter(self):
         # open child window with the current value of the chosen Counter object
         def changeCounter(_event):
-            overlay.attributes('-transparentcolor', 'white')
+            overlay.attributes('-transparentcolor', '')
+            self.overlayCount.config(bg=self.configs[self.configNmr][2])
+            if self.configs[self.configNmr][0]:
+                overlay.attributes('-transparentcolor', self.overlayCount['bg'])
             self.overlayCount.config(fg=self.configs[self.configNmr][1])
             # roll over to the next config for next click
             self.configNmr += 1
@@ -93,7 +100,10 @@ class Ui:
         self.counter = self.counters[self.counterIndex]
 
         overlay = Toplevel(self.rootW)
-        self.overlayCount = Label(overlay, text=str(self.counter.value), font=self.font[75], bg='white')
+        self.overlayCount = Label(overlay,
+                                  text=str(self.counter.value),
+                                  font=self.font[75],
+                                  bg=self.configs[self.configNmr][2])
         self.overlayCount.pack()
         overlay.overrideredirect(True)  # windowless
         overlay.lift()
@@ -105,14 +115,20 @@ class Ui:
         overlay.bind("<Escape>", exitOverlay)
 
     def deleteCounter(self):
-        pass
+        # delete highlighted counter Object from the list and save file
+        if messagebox.askokcancel('Delete Counter', 'Deleting this counter is irreversible do you want to continue'):
+            self.closeToplevel()
+            self.score.config(text='None Selected', font=self.font[24])
+            self.counters.pop(self.counterIndex)
+            self.save()
+            self.refreshListBox()
 
     def newCounter(self):
         # make new Counter Object and add to the library
 
         def next1():
             # confirm the adding of the Counter and close the child window
-            if messagebox.askyesno('Make new Counter', f'Make new counter with the name {entry_name.get()}'):
+            if messagebox.askokcancel('Make new Counter', f'Make new counter with the name {entry_name.get()}'):
                 # clear the entryBox for a new counter
                 counter = CC.Counter(len(self.counters) + 1, entry_name.get(), 0)
 
