@@ -6,7 +6,7 @@ import UImethods as UIM
 
 
 class Ui:
-    def __init__(self, saves, _gui_chance=None):
+    def __init__(self, root, saves, _gui_chance=None):
         # all counters are in saves
         self.counters = saves
 
@@ -29,7 +29,7 @@ class Ui:
         self.selection = None
 
         # start tkinter rootW is main root
-        self.rootW = Tk()
+        self.rootW = root
         self.height = 14
         self.width = 75
 
@@ -61,20 +61,18 @@ class Ui:
 
         self.overlayCount = Label(self.rootW, text=0, font=self.font[75])
 
-        self.select = Button(self.body, font=self.font[24], command=self.selectCounter, text='SELECT')
-        self.select.grid(row=2, column=1, pady=(5, 0), padx=10)
-        self.delete = Button(self.body, font=self.font[24], command=self.deleteCounter, text='DELETE')
-        self.delete.grid(row=4, column=1, pady=5)
-        self.new = Button(self.body, font=self.font[24], command=self.newCounter, text='NEW')
-        self.new.grid(row=3, column=1, pady=(5, 0), ipadx=26)
+        select = Button(self.body, font=self.font[24], command=self.selectCounter, text='SELECT')
+        select.grid(row=2, column=1, pady=(5, 0), padx=10)
+        delete = Button(self.body, font=self.font[24], command=self.deleteCounter, text='DELETE')
+        delete.grid(row=4, column=1, pady=5)
+        new = Button(self.body, font=self.font[24], command=self.newCounter, text='NEW')
+        new.grid(row=3, column=1, pady=(5, 0), ipadx=26)
 
         self.counterList.bind("<<ListboxSelect>>", self.callback)
         self.score.bind("<Button-1>", self.openOptions)
         self.rootW.protocol("WM_DELETE_WINDOW", self.saveQuit)
 
         self.rootW.geometry('+500+300')
-
-        self.rootW.mainloop()
 
     def closeToplevel(self):
         for child in self.rootW.winfo_children():
