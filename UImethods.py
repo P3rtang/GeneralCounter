@@ -1,5 +1,4 @@
 from tkinter import *
-from tkinter import messagebox
 import pokemonMethodClass as PM
 import CounterReadClass as CR
 
@@ -46,8 +45,8 @@ class UiMethods:
         self.method_list = []
         self.chain = 1
         self.font = []
-        for n in range(1, 101):
-            self.font.append(("Helvetica", f"{n}", "bold"))
+        for f in range(1, 101):
+            self.font.append(("Helvetica", f"{f}", "bold"))
 
         for ind, line in enumerate(methods):
             if line != '':
@@ -73,7 +72,7 @@ class UiMethods:
 
         self.root.bind('<Button-1>', self.optionMenu)
 
-    def optionMenu(self, counter):
+    def optionMenu(self, _counter):
         def applyOption():
             # changing the counter values
             self.chain = int(set_count.get()) if set_count.get() else self.chain
@@ -95,10 +94,11 @@ class UiMethods:
         cancel.grid(row=0, column=0, ipadx=8, sticky='w')
         apply.grid(row=0, column=1, ipadx=17, sticky='e')
 
-    def update(self, counter: CounterClass.Counter, dec=False, chainLost=False):
+    def update(self, counter: CounterClass.Counter, dec=False, chain_lost=False):
         # store the method for which values need to be calculated
+        global cur_chance
         method = self.method_list[counter.id - 1].method_id
-        if chainLost:
+        if chain_lost:
             self.chain = 0
         elif dec:
             self.chain -= 1
@@ -108,34 +108,31 @@ class UiMethods:
         # normal random encounter with odds store in method.odds method is stored in method_list
         if method == 0:
             cur_chance = 1 - (1 - 1 / self.method_list[counter.id - 1].odds) ** counter.value
-            self.chance.config(text=f'{round(cur_chance * 100, 3)}')
+            self.chance.config(text=f'{round(cur_chance * 100, 3)}%')
 
         elif method == 1:
-            if not dec and not chainLost:
+            if not dec and not chain_lost:
                 cur_chance = dexnavChanceInc(counter.value, self.method_list[counter.id - 1].odds, self.chain)
 
                 self.method_list[counter.id - 1].odds = cur_chance
 
-            if dec and not chainLost:
+            if dec and not chain_lost:
                 cur_chance = dexnavChanceDec(counter.value, self.method_list[counter.id - 1].odds, self.chain)
 
                 self.method_list[counter.id - 1].odds = cur_chance
 
-            if chainLost:
+            if chain_lost:
                 cur_chance = self.method_list[counter.id - 1].odds
                 self.chain %= 100
 
-            else:
-                cur_chance = 'ERROR'
-
-            self.chance.config(text=f'{round((1 - cur_chance) * 100, 3)} - {self.chain}')
+            self.chance.config(text=f'{round((1 - cur_chance) * 100, 3)}% - {self.chain}')
 
 
 if __name__ == '__main__':
-    neg_chance = 1
-    chain = 0
+    neg_chance_start = 1
+    chain_start = 0
     for n in range(1, 1000):
-        chain += 1
-        neg_chance = dexnavChanceInc(n, neg_chance, chain)
-        print(chain, neg_chance)
-        chain %= 100
+        chain_start += 1
+        neg_chance_start = dexnavChanceInc(n, neg_chance_start, chain_start)
+        print(chain_start, neg_chance_start)
+        chain_start %= 100

@@ -1,7 +1,6 @@
 import CounterReadClass as CR
 import CounterClass as CC
 import UI as UI
-import UImethods as UIM
 
 counters = CR.CounterRead('counters.txt')
 counterList = []

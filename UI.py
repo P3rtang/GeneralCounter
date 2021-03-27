@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 import CounterClass as CC
 import UImethods as UIM
+# import inputsKeyboard as iK
 
 
 class Ui:
@@ -18,7 +19,6 @@ class Ui:
         self.gui2 = UIM.UiMethods(self.counters)
 
         self.gui2.root.overrideredirect(True)
-        self.gui2.root.wm_attributes("-topmost", True)
         self.gui2.root.withdraw()
 
         # make al font sizes op to 100
@@ -72,6 +72,8 @@ class Ui:
         self.score.bind("<Button-1>", self.openOptions)
         self.rootW.protocol("WM_DELETE_WINDOW", self.saveQuit)
 
+        self.rootW.geometry('+500+300')
+
         self.rootW.mainloop()
 
     def closeToplevel(self):
@@ -118,14 +120,19 @@ class Ui:
                                   font=self.font[75],
                                   bg=self.configs[self.configNmr][2])
         self.overlayCount.pack()
+
+        self.gui2.update(self.counter, chain_lost=True)
+
         overlay.overrideredirect(True)  # windowless
         overlay.lift()
         overlay.wm_attributes("-topmost", True)
         overlay.focus_force()
 
+        # iK.ClickMouse(overlay)
+
         overlay.bind("<KeyRelease>", self.keyUp)
         overlay.bind("<*>", changeCounter)
-        overlay.bind("</>", lambda i=True: self.gui2.update(self.counter, chainLost=i))
+        overlay.bind("</>", lambda i=True: self.gui2.update(self.counter, chain_lost=i))
 
         # when escape is pressed with the overlay active close all the overlays (including the extra feature window)
         overlay.bind("<Escape>", exitOverlay)
@@ -192,8 +199,9 @@ class Ui:
 
         # check if a selection is made otherwise don't open option menu
         if self.selection:
-            print(self.counter.id)
             option_menu = Toplevel(self.rootW)
+
+            option_menu.geometry('+1500+300')
 
             show_pokemon = Button(option_menu, text='pokemon chance OFF', font=self.font[16], command=showPokWindow)
             show_pokemon.pack(pady=(0, 20), fill='x')
@@ -234,11 +242,11 @@ class Ui:
 
             # save the selected counter as a single Counter object
             self.counter = self.counters[self.counterIndex]
-            print(self.counter.id)
-            self.gui2.update(self.counter, chainLost=True)
+
             self.selection = event.widget.curselection()
 
     def keyUp(self, char):
+        print(char)
         print(f'pressed {char.char}')
         if char.char == '+' or char.char == ' ':
             self.counter.value += self.counter.jump
