@@ -244,8 +244,6 @@ class Ui:
             self.selection = event.widget.curselection()
 
     def keyUp(self, char):
-        print(char)
-        print(f'pressed {char.char}')
         if char.char == '+' or char.char == ' ':
             self.counter.value += self.counter.jump
             self.gui2.update(self.counter)
