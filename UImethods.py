@@ -76,12 +76,23 @@ class UiMethods:
         def applyOption():
             # changing the counter values
             self.chain = int(set_count.get()) if set_count.get() else self.chain
-            self.chance.config(text=f'{self.chance["text"].split(" - ")[0]} - {self.chain}')
+            self.chance.config(text=f'{self.chance["text"].split(" - ")[0]:.3f} - {self.chain}')
+
+        def reset():
+            self.chain = 0
+            self.chance.config(text=f'{0:.3f}% - {self.chain}')
+            option_menu.destroy()
 
         option_menu = Toplevel(self.root)
 
+        # reset the chance to zero with a button in the optionmenu
+        reset_chance = Button(option_menu, text='Reset chance to 0', font=self.font[20], command=reset)
+        reset_chance.pack()
+
+        # set the chain length from an ptionsmenu opened when clicking on the widget
         Label(option_menu, text='set chain', font=self.font[20]).pack()
         set_count = Entry(option_menu, font=self.font[16], justify='center')
+
         set_count.pack()
         set_count.focus_force()
 

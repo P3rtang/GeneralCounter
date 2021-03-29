@@ -1,10 +1,9 @@
 class Method:
     def __init__(self, counter_id, name, count, _step_size, method_id, odds=8192):
-
         methods = {
             '0': 'Encounters',
             '1': 'DexNav',
-            '2': 'SOS1'
+            '2': 'SOS'
         }
         self.counter_id = counter_id
         self.counter_name = name.replace('_', ' ')

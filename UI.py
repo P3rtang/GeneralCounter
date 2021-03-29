@@ -1,9 +1,10 @@
 from tkinter import *
 from tkinter import messagebox
 import CounterClass as CC
+import pokemonMethodClass as pMC
 import UImethods as UIM
 from win32api import GetSystemMetrics
-import inputsKeyboard as iK
+# import inputsKeyboard as iK
 
 
 class Ui:
@@ -157,23 +158,35 @@ class Ui:
                 # clear the entryBox for a new counter
                 counter = CC.Counter(len(self.counters) + 1, entry_name.get(), 0)
 
+                # get selected method and search for its ID
+                selected_method_id = str(methods.index(hunt_option.get()))
+
+                # Make method object
+                method = pMC.Method(counter.id, counter.name, counter.value, counter.jump, selected_method_id, 1)
+
                 self.counters.append(counter)
+                self.gui2.method_list.append(method)
 
                 entry_name.delete(0, 'end')
                 make_counter.destroy()
                 self.refreshListBox()
         # Child window for the name of the Counter
         make_counter = Toplevel(self.rootW)
+        hunt_option = StringVar(make_counter)
 
         # Entry for the name
         entry_name = Entry(make_counter, font=self.font[32], width=24, text='Name')
         entry_name.grid(row=0, column=0, columnspan=2, pady=5, padx=3)
+        # Option for Choosing the Pokemon hunt method
+        methods = ['Encounters', 'DexNav', 'SOS']
+        hunt_options = OptionMenu(make_counter, hunt_option, *methods)
+        hunt_options.grid(row=1, column=0, columnspan=2, pady=5, padx=3)
         # cancel go back to main window
         cancel = Button(make_counter, font=self.font[20], width=14, text='CANCEL', command=make_counter.destroy)
-        cancel.grid(row=1, column=0, padx=(0, 3), pady=(0, 5))
+        cancel.grid(row=2, column=0, padx=(0, 3), pady=(0, 5))
         # confirm new Counter see next1 Func
         next1 = Button(make_counter, font=self.font[20], width=14, text='CONTINUE', command=next1)
-        next1.grid(row=1, column=1, padx=(0, 3), pady=(0, 5))
+        next1.grid(row=2, column=1, padx=(0, 3), pady=(0, 5))
 
         entry_name.focus_force()
 
@@ -268,7 +281,6 @@ class Ui:
             save_file.write(f'{m.method_id} {m.odds}\n')
 
     def save_quit(self):
-        if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self.save()
-            self.rootW.destroy()
-            self.gui2.root.destroy()
+        self.save()
+        self.rootW.destroy()
+        self.gui2.root.destroy()
