@@ -76,7 +76,7 @@ class UiMethods:
         def applyOption():
             # changing the counter values
             self.chain = int(set_count.get()) if set_count.get() else self.chain
-            self.chance.config(text=f'{self.chance["text"].split(" - ")[0]:.3f} - {self.chain}')
+            self.chance.config(text=f'{float(self.chance["text"].split(" - ")[0]):.3f} - {self.chain}')
 
         def reset():
             self.chain = 0
