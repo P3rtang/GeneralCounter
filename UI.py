@@ -2,7 +2,8 @@ from tkinter import *
 from tkinter import messagebox
 import CounterClass as CC
 import UImethods as UIM
-# import inputsKeyboard as iK
+from win32api import GetSystemMetrics
+import inputsKeyboard as iK
 
 
 class Ui:
@@ -40,8 +41,9 @@ class Ui:
         self.configs = [(True, 'red', '#FF0001'), (True, '#5280e9', '#5280e8'), (False, 'black', 'white')]
         self.configNmr = 2
         # make body for easy addition and resizing in main window
-        self.body = Frame(self.rootW)
+        self.body = Frame(self.rootW, width=954, height=512)
         self.body.pack()
+        self.body.grid_propagate(False)
 
         self.counterList = Listbox(self.body, width=self.width // 2 - 1, height=self.height - 1, font=self.font[24])
 
@@ -70,9 +72,12 @@ class Ui:
 
         self.counterList.bind("<<ListboxSelect>>", self.callback)
         self.score.bind("<Button-1>", self.openOptions)
-        self.rootW.protocol("WM_DELETE_WINDOW", self.saveQuit)
+        self.rootW.protocol("WM_DELETE_WINDOW", self.save_quit)
 
-        self.rootW.geometry('+500+300')
+        self.screen_width = GetSystemMetrics(0)
+        self.screen_height = GetSystemMetrics(1)
+
+        self.rootW.geometry(f'+{self.screen_width // 2 - 477}+{self.screen_height // 2 - 256}')
 
     def closeToplevel(self):
         for child in self.rootW.winfo_children():
@@ -126,9 +131,8 @@ class Ui:
         overlay.wm_attributes("-topmost", True)
         overlay.focus_force()
 
-        # iK.ClickMouse(overlay)
-
         overlay.bind("<KeyRelease>", self.keyUp)
+        overlay.bind("a", self.keyUp)
         overlay.bind("<*>", changeCounter)
         overlay.bind("</>", lambda i=True: self.gui2.update(self.counter, chain_lost=i))
 
@@ -199,7 +203,7 @@ class Ui:
         if self.selection:
             option_menu = Toplevel(self.rootW)
 
-            option_menu.geometry('+1500+300')
+            option_menu.geometry(f'+{self.screen_width // 2 + 498}+{self.screen_height // 2 - 256}')
 
             show_pokemon = Button(option_menu, text='pokemon chance OFF', font=self.font[16], command=showPokWindow)
             show_pokemon.pack(pady=(0, 20), fill='x')
@@ -243,11 +247,12 @@ class Ui:
 
             self.selection = event.widget.curselection()
 
-    def keyUp(self, char):
-        if char.char == '+' or char.char == ' ':
+    def keyUp(self, event):
+        print(event)
+        if event.char == '+' or event.char == ' ':
             self.counter.value += self.counter.jump
             self.gui2.update(self.counter)
-        elif char.char == '-':
+        elif event.char == '-':
             self.counter.value -= self.counter.jump
             self.gui2.update(self.counter, dec=True)
         self.score.config(text=str(self.counter.value), font=self.font[75])
@@ -262,7 +267,7 @@ class Ui:
         for m in self.gui2.method_list:
             save_file.write(f'{m.method_id} {m.odds}\n')
 
-    def saveQuit(self):
+    def save_quit(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.save()
             self.rootW.destroy()

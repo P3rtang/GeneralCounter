@@ -94,10 +94,10 @@ class UiMethods:
         cancel.grid(row=0, column=0, ipadx=8, sticky='w')
         apply.grid(row=0, column=1, ipadx=17, sticky='e')
 
-    def update(self, counter: CounterClass.Counter, dec=False, chain_lost=False):
+    def update(self, counter: CounterClass.Counter, dec=False, chain_lost=False, has_charm=False):
         # store the method for which values need to be calculated
         global cur_chance
-        method = self.method_list[counter.id - 1].method_id
+        method = self.method_list[counter.id - 1]
         if chain_lost:
             self.chain = 0
         elif dec:
@@ -106,11 +106,11 @@ class UiMethods:
             self.chain += 1
 
         # normal random encounter with odds store in method.odds method is stored in method_list
-        if method == 0:
+        if method.method_id == 0:
             cur_chance = 1 - (1 - 1 / self.method_list[counter.id - 1].odds) ** counter.value
             self.chance.config(text=f'{round(cur_chance * 100, 3)}%')
 
-        elif method == 1:
+        elif method.method_id == 1:
             if not dec and not chain_lost:
                 cur_chance = dexnavChanceInc(counter.value, self.method_list[counter.id - 1].odds, self.chain)
 
@@ -126,6 +126,29 @@ class UiMethods:
                 self.chain %= 100
 
             self.chance.config(text=f'{round((1 - cur_chance) * 100, 3)}% - {self.chain}')
+        elif method.method_id == 2:
+            rolls = 1
+            neg_chance = 4095 / 4096
+
+            if has_charm:
+                rolls += 2
+
+            if self.chain <= 10:
+                pass
+            elif self.chain <= 20:
+                rolls += 4
+            elif self.chain <= 30:
+                rolls += 8
+            elif self.chain > 70:
+                rolls += 12
+
+            if not dec and not chain_lost:
+                method.odds *= neg_chance ** rolls
+            elif not chain_lost:
+                method.odds /= neg_chance ** rolls
+            else:
+                self.chain = 0
+            self.chance.config(text=f'{round((1 - method.odds) * 100, 3)}% - {self.chain}')
 
 
 if __name__ == '__main__':
