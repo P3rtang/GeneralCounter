@@ -108,7 +108,7 @@ class UiMethods:
         # normal random encounter with odds store in method.odds method is stored in method_list
         if method.method_id == 0:
             cur_chance = 1 - (1 - 1 / self.method_list[counter.id - 1].odds) ** counter.value
-            self.chance.config(text=f'{round(cur_chance * 100, 3)}%')
+            self.chance.config(text=f'{round(cur_chance * 100, 3):.3f}%')
 
         elif method.method_id == 1:
             if not dec and not chain_lost:
@@ -125,7 +125,7 @@ class UiMethods:
                 cur_chance = self.method_list[counter.id - 1].odds
                 self.chain %= 100
 
-            self.chance.config(text=f'{round((1 - cur_chance) * 100, 3)}% - {self.chain}')
+            self.chance.config(text=f'{round((1 - cur_chance) * 100, 3):.3f}% - {self.chain}')
         elif method.method_id == 2:
             rolls = 1
             neg_chance = 4095 / 4096
@@ -148,7 +148,7 @@ class UiMethods:
                 method.odds /= neg_chance ** rolls
             else:
                 self.chain = 0
-            self.chance.config(text=f'{round((1 - method.odds) * 100, 3)}% - {self.chain}')
+            self.chance.config(text=f'{round((1 - method.odds) * 100, 3):.3f}% - {self.chain}')
 
 
 if __name__ == '__main__':
