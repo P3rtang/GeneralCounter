@@ -2,11 +2,19 @@ from CounterReadClass import CounterRead
 
 
 class Counter:
-    def __init__(self, id, name, value, jump=1):
+    def __init__(self, id, name, value, jump=1, method_id=0, odds=8192):
         self.id = int(id)
         self.value = int(value)
         self.name = name.replace('_', ' ')
         self.jump = int(jump)
+        self.method_id = int(method_id)
+        if self.method_id == 0:
+            self.odds = float(odds)
+            self.cur_step = float(self.value)
+        elif self.method_id == 1:
+            self.odds = float(odds)
+        elif self.method_id == 2:
+            self.odds = float(odds)
 
     def __add__(self, other):
         self.value += other

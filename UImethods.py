@@ -1,7 +1,6 @@
 from tkinter import *
 import pokemonMethodClass as PM
 import CounterReadClass as CR
-
 import CounterClass
 
 
