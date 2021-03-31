@@ -254,7 +254,6 @@ class Ui:
 
     def close_toplevel(self):
         for child in self.rootW.winfo_children():
-            print(child)
             if '.!toplevel' in str(child) and str(child) != '.!toplevel' and str(child) != '.!toplevel2':
                 self.save()
                 child.destroy()
@@ -265,8 +264,13 @@ class Ui:
             self.counterList.insert(counter.id, counter.name)
 
     def selectCounter(self):
-
-        self.score.config(text=str(self.counter.value), font=self.font[75])
+        self.save()
+        if self.overlay.winfo_ismapped():
+            self.overlay.withdraw()
+            self.overlay2.withdraw()
+        else:
+            self.overlay.deiconify()
+            self.overlay2.deiconify()
 
     def deleteCounter(self):
         # delete highlighted counter Object from the list and save file
@@ -324,8 +328,6 @@ class Ui:
 
         # save and apply chosen options
         def applyOption():
-            # debug code
-            print(step_size_entry.get(), set_count.get())
             # changing the counter values
             self.counter.jump = int(step_size_entry.get()) if step_size_entry.get() else 1
             self.counter.value = int(set_count.get()) if set_count.get() else self.counter.value
