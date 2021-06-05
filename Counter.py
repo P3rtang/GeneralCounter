@@ -1,22 +1,45 @@
 import tkinter as tk
 
-from pynput.keyboard import Listener, KeyCode, Key
-
 from pygame import mixer
+from pynput.keyboard import Listener, KeyCode, Key
 
 import CounterClass as cC
 import CounterReadClass as cR
 import UI as UI
 
+class Debugger:
+    def __init__(self, root):
+
+        self.main_objects = [x for x in root.winfo_children()]
+
+        self.debugRoot = tk.Toplevel(root)
+
+        self.objects = tk.Listbox(self.debugRoot, height=20, width=30, font=gui.font[20])
+        print(self.main_objects)
+        for x, y in enumerate(self.main_objects):
+            self.objects.insert(x, y)
+
+        self.objects.pack()
+
+        self.objects.bind("<<ListboxSelect>>", self.selectListBox)
+
+    def selectListBox(self, _event):
+        selected_child = self.main_objects[self.objects.index('anchor')]
+        if selected_child.type in gui.resizable:
+            pass
+        else:
+            objects = [x for x in self.main_objects[self.objects.index('anchor')].winfo_children()]
+
+            self.main_objects = objects
+
 
 # listener for keystrokes are handled by keyboard listener so the app can work when not in focus
 def on_release(event):
-    global disableControls
+    global listener
     if gui.selection is not None:
         # check for which key has been pressed and update counter object accordingly
-        if not disableControls:
+        if not gui.isDisabled():
             if event == KeyCode(char='+') or event == Key.space:
-                mixer.music.load('mouse-click-clicking-single-click.mp3')
                 mixer.music.play(1)
                 gui.counter.value += gui.counter.jump
                 gui.update_gui_chance()
@@ -28,7 +51,9 @@ def on_release(event):
                 gui.update_gui_chance(chain_lost=True)
             # show or hide the overlays
             elif event == KeyCode(char='*'):
-                gui.selectCounter()
+                gui.showCounter()
+            elif event == KeyCode(char='#'):
+                gui.changeCounter()
             # update the active counters to the current value
             gui.score.config(text=gui.counter.value, font=gui.font[75])
             gui.overlayCount.config(text=gui.counter.value, font=gui.font[75])
@@ -37,22 +62,20 @@ def on_release(event):
             # save when disabling controls in the event the window is forgotten when shutting down the PC
             gui.save()
             # either disable or re-enable the controls
-            if disableControls:
-                disableControls = False
-                gui.score.config(text=gui.counter.value, font=gui.font[75])
-                gui.overlayCount.config(text=gui.counter.value, font=gui.font[75])
+            if gui.isDisabled() and gui.inFocus():
+                gui.enable()
             else:
-                # change the label in the main window to reflect that controls are turned off
-                gui.score.config(text='Controls\nDisabled', font=gui.font[45])
-                disableControls = True
-                # hide all overlays when disabling the controls
-                gui.overlay.withdraw()
-                gui.overlay2.withdraw()
+                gui.disable()
+
+        elif event == Key.f1:
+            debugger = Debugger(root)
 
 
-disableControls = False
-counters = cR.CounterRead('counters.txt')           # string with counter objects read by CounterRead class from 'counters.txt'
-counterList = []                                    # list to store counter objects in
+counters = cR.CounterRead('./saves/counters.txt')   # string with counter objects read by CounterRead class from './saves/counters.txt'
+counterList = []
+
+mixer.init()
+mixer.music.load('bin/mouse-click-clicking-single-click.mp3')                         # list to store counter objects in
 # making counter object from the read line and storing in counterList
 for line in counters:
     item = line.split(' ')                          # individual characteristics of counter object are separated by spaces in the txt file
@@ -61,15 +84,14 @@ for line in counters:
     if item[0]:
         counterList.append(cC.Counter(*item))       # counter needs 6 arguments and they are stored in multiple objects
 
-root = tk.Tk()                                      # start main window
+root = tk.Tk()             # start main window
 
 gui = UI.Ui(root, counterList)                      # start the UI class to populate the main root
 
 # listener for keyboard events
 listener = Listener(on_release=on_release)
 listener.start()
-listener.wait()
 
-mixer.init()
 root.mainloop()
 listener.stop()
+    

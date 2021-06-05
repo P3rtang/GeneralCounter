@@ -3,7 +3,8 @@ class Method:
         methods = {
             '0': 'Encounters',
             '1': 'DexNav',
-            '2': 'SOS'
+            '2': 'SOS',
+            '3': 'Masuda Method'
         }
         self.counter_id = counter_id
         self.counter_name = name.replace('_', ' ')
@@ -11,9 +12,11 @@ class Method:
         self.count = count
         self.method_id = int(method_id)
         if self.method_id == 0:
-            self.odds = float(odds)
             self.cur_step = float(count)
         elif self.method_id == 1:
-            self.odds = float(odds)
+            pass
         elif self.method_id == 2:
-            self.odds = float(odds)
+            pass
+        elif self.method_id == 3:
+            pass
+        self.odds = float(odds)

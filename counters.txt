@@ -1,6 +1,0 @@
-1 mareep_(heartgold) 2076 1 0 8192.0
-2 regieleki_(sword) 6155 1 0 1365.33333
-3 shroomish_(OR) 432 1 1 0.643227162084504
-4 Ditto_(OR) 0 1 1 1.0
-5 Ditto_(sun) 569 1 2 0.3045664971421306
-6 Larvesta_(OR) 33 1 1 0.9958025264859777

@@ -1,9 +1,10 @@
 from tkinter import *
 from tkinter import messagebox
 import CounterClass as CC
-import pokemonMethodClass as pMC
 import UImethods as UIM
 from win32api import GetSystemMetrics
+from win32gui import GetWindowText, GetForegroundWindow
+from PIL import ImageTk, Image
 
 
 def dexnav_chance_inc(step, neg_chance, chain=0):
@@ -40,8 +41,22 @@ def dexnav_chance_dec(step, neg_chance, chain=0):
     return neg_chance
 
 
+def highestId():
+    with open('./saves/counters.txt') as saves:
+        saves = saves.read()
+    with open('./saves/archived.txt') as archive:
+        archive = archive.read()
+
+    highest_id = (saves + archive).count('\n')
+    print(highest_id)
+    return highest_id
+
+
 class Ui:
     def __init__(self, root, saves, _gui_chance=None):
+        # list to keep track of all resizable widgets to customize the layout
+        self.resizable = []
+
         # all counters are in saves
         self.counters = saves
 
@@ -53,6 +68,9 @@ class Ui:
         self.counterIndex = 0
         # active counter object
         self.counter = self.counters[self.counterIndex]
+
+        # flag to disable all events and keyboard listeners
+        self.disabled_status = False
 
         # make al font sizes op to 100
         self.font = []
@@ -73,20 +91,25 @@ class Ui:
         self.configs = [(True, 'red', '#FF0001'), (True, '#5280e9', '#5280e8'), (False, 'black', 'white')]
         self.configNmr = 0
         # make body for easy addition and resizing in main window
-        self.body = Frame(self.rootW, width=954, height=512)
+        self.body = Frame(self.rootW)
         self.body.pack()
-        self.body.grid_propagate(False)
 
+        # list with all active counters
+        # interact by clicking
         self.counterList = Listbox(self.body, width=self.width // 2 - 1, height=self.height - 1, font=self.font[24])
 
         self.refreshListBox()
 
         self.counterList.grid(row=0, rowspan=5)
 
+        # TODO: clicking in the window(listbox or outside) should deselect any counter
+        # bind selecting a counter to listBoxSelect which in turn activates the counter object and refreshes the window
+        self.counterList.bind("<<ListboxSelect>>", self.listBoxSelect)
+
         # gives a frame to store the label with the count of the selected counter
         self.scoreFrame = Frame(self.body, borderwidth=1, relief="sunken",
                                 width=300, height=280)
-        self.scoreFrame.grid(row=0, column=1, rowspan=2)
+        self.scoreFrame.grid(row=0, column=1, rowspan=2, columnspan=2)
         self.scoreFrame.pack_propagate(False)
 
         # Label with the actual current count of the selected counter
@@ -95,15 +118,31 @@ class Ui:
 
         self.overlayCount = Label(self.rootW, text=0, font=self.font[75])
 
-        select = Button(self.body, font=self.font[24], command=self.selectCounter, text='SELECT')
+        select = Button(self.body, font=self.font[24], command=self.showCounter, text='SELECT')
         select.grid(row=2, column=1, pady=(5, 0), padx=10)
         delete = Button(self.body, font=self.font[24], command=self.deleteCounter, text='DELETE')
         delete.grid(row=4, column=1, pady=5)
         new = Button(self.body, font=self.font[24], command=self.newCounter, text='NEW')
         new.grid(row=3, column=1, pady=(5, 0), ipadx=26)
 
-        self.counterList.bind("<<ListboxSelect>>", self.callback)
-        self.score.bind("<Button-1>", self.openOptions)
+        self.archive_image = ImageTk.PhotoImage(Image.open('./bin/archive2.png'))
+
+        archive = Label(self.body, image=self.archive_image, width=60, height=60)
+        archive.grid(row=4, column=2)
+        archive.bind("<Button-1>", self.Archive)
+
+        self.option_image = ImageTk.PhotoImage(Image.open('./bin/cog.png'))
+
+        options = Label(self.body, image=self.option_image, width=60, height=60)
+        options.grid(row=2, column=2)
+        options.bind("<Button-1>", self.openMainOptions)
+
+        self.delete_image = ImageTk.PhotoImage(Image.open('./bin/trashcan.png'))
+
+        delete = Label(self.body, image=self.delete_image, width=60, height=60)
+        delete.grid(row=3, column=2)
+        delete.bind("<Button-1>", self.deleteCounter)
+        self.score.bind("<Button-1>", self.openCounterOptions)
         self.rootW.protocol("WM_DELETE_WINDOW", self.save_quit)
 
         self.screen_width = GetSystemMetrics(0)
@@ -145,6 +184,11 @@ class Ui:
         self.overlay2.bind('<Button-1>', self.optionMenu)
         self.overlay2.withdraw()
 
+    def isShown(self):
+        if self.overlay.winfo_ismapped():
+            return True
+        return False
+
     def optionMenu(self, _counter):
         def applyOption():
             # changing the counter values
@@ -182,6 +226,9 @@ class Ui:
         # store the method for which values need to be calculated
         cur_chance = self.counter.odds
         method = self.counter.method_id
+
+        # updating the chain dependant on the input dec means decreasing and
+        # any update with chain lost sets the chain to 0 (also used when starting the gui
         if chain_lost:
             self.chain = 0
         elif dec:
@@ -197,19 +244,12 @@ class Ui:
         # dexnav encounter with previous encounter odds stored in self.counter.odds
         elif method == 1:
             if not dec and not chain_lost:
-                cur_chance = dexnav_chance_inc(self.counter.value, self.counter.odds, self.chain)
-
-                self.counter.odds = cur_chance
+                self.counter.odds = dexnav_chance_inc(self.counter.value, self.counter.odds, self.chain)
 
             if dec and not chain_lost:
-                cur_chance = dexnav_chance_dec(self.counter.value, self.counter.odds, self.chain)
+                self.counter.odds = dexnav_chance_dec(self.counter.value, self.counter.odds, self.chain)
 
-                self.counter.odds = cur_chance
-
-            if chain_lost:
-                cur_chance = self.counter.odds
-
-            self.chance.config(text=f'{round((1 - cur_chance) * 100, 3):.3f}% - {self.chain}')
+            self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}% - {self.chain}')
 
         # SOS encounters with previous encounter odds stored in self.counter.odds
         # this method works with rolls and is the base odds lifted to the power of the nr of rolls
@@ -238,13 +278,26 @@ class Ui:
                 self.chain = 0
             # update overlay
             self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}% - {self.chain}')
+        # masuda method
+        elif method == 3:
+            rolls = 6
+            neg_chance = 4095/4096
+            if has_charm:
+                rolls += 2
+
+            if not dec and not chain_lost:
+                self.counter.odds *= neg_chance ** rolls
+            elif dec and not chain_lost:
+                self.counter.odds /= neg_chance ** rolls
+            self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}%')
 
     def changeCounter(self):
         self.overlayCount.config(bg=self.configs[self.configNmr][2])
         self.chance.config(bg=self.configs[self.configNmr][2])
 
-        self.overlay.attributes('-transparentcolor', self.overlayCount['bg'])
-        self.overlay2.attributes('-transparentcolor', self.gui2.chance['bg'])
+        if self.configs[self.configNmr][0]:
+            self.overlay.attributes('-transparentcolor', self.configs[self.configNmr][2])
+            self.overlay2.attributes('-transparentcolor', self.configs[self.configNmr][2])
 
         self.overlayCount.config(fg=self.configs[self.configNmr][1])
         self.chance.config(fg=self.configs[self.configNmr][1])
@@ -263,18 +316,26 @@ class Ui:
         for counter in self.counters:
             self.counterList.insert(counter.id, counter.name)
 
-    def selectCounter(self):
+    def showCounter(self):
         self.save()
-        if self.overlay.winfo_ismapped():
+
+        # if overlay is active hide it and show it in the other case
+        if self.isShown():
             self.overlay.withdraw()
             self.overlay2.withdraw()
         else:
             self.overlay.deiconify()
             self.overlay2.deiconify()
 
-    def deleteCounter(self):
+    def deleteCounter(self, archiving=False):
+        if archiving:
+            operation = ('archive', 'archiving')
+        else:
+            operation = ('delete', 'deleting')
+
         # delete highlighted counter Object from the list and save file
-        if messagebox.askokcancel('Delete Counter', 'Deleting this counter is irreversible do you want to continue'):
+        if messagebox.askokcancel(f'{operation[0]} Counter',
+                                  f'{operation[1]} this counter is irreversible do you want to continue'):
             self.close_toplevel()
             self.score.config(text='None Selected', font=self.font[24])
             self.counters.pop(self.counterIndex)
@@ -287,21 +348,50 @@ class Ui:
         def next1():
             # confirm the adding of the Counter and close the child window
             if messagebox.askokcancel('Make new Counter', f'Make new counter with the name {entry_name.get()}'):
-                # clear the entryBox for a new counter
-                counter = CC.Counter(len(self.counters) + 1, entry_name.get(), 0)
+                odds = 1
 
-                # get selected method and search for its ID
-                selected_method_id = str(methods.index(hunt_option.get()))
+                def next2():
+                    nonlocal odds
+                    if choice.get() == 'old odds':
+                        odds = 8192.0
+                    elif choice.get() == 'old odds w charm':
+                        odds = 2731.000027128392
+                    elif choice.get() == 'new odds with charm':
+                        odds = 1365.666720926762
+                    else:
+                        odds = 4096.0
 
-                # Make method object
-                method = pMC.Method(counter.id, counter.name, counter.value, counter.jump, selected_method_id, 1)
+                    self.counters[-1].odds = odds
 
+                    set_odds.destroy()
+
+                new_id = highestId() + 1
+
+                m_id = methods.index(hunt_option.get())
+
+                # if the method is set to encounter the odds need to be known
+                if m_id == 0:
+                    set_odds = Toplevel(self.rootW)
+                    choice = StringVar(set_odds)
+
+                    choices = ['old odds', 'old odds w charm', 'new odds', 'new odds with charm']
+
+                    odds_choice = OptionMenu(set_odds, choice, *choices)
+                    odds_choice.config(font=self.font[32], width=24)
+                    odds_choice.pack()
+                    # confirm the odds of the random encounter see next1 Func
+                    next2 = Button(set_odds, font=self.font[20], width=14, text='CONTINUE', command=next2)
+                    next2.pack()
+
+                # make new counter object and add it to the list
+                counter = CC.Counter(new_id, entry_name.get(), 0, method_id=m_id, odds=odds)
                 self.counters.append(counter)
-                self.gui2.method_list.append(method)
 
                 entry_name.delete(0, 'end')
                 make_counter.destroy()
                 self.refreshListBox()
+                print(counter.odds, m_id)
+
         # Child window for the name of the Counter
         make_counter = Toplevel(self.rootW)
         hunt_option = StringVar(make_counter)
@@ -310,7 +400,7 @@ class Ui:
         entry_name = Entry(make_counter, font=self.font[32], width=24, text='Name')
         entry_name.grid(row=0, column=0, columnspan=2, pady=5, padx=3)
         # Option for Choosing the Pokemon hunt method
-        methods = ['Encounters', 'DexNav', 'SOS']
+        methods = ['Encounters', 'DexNav', 'SOS', 'Masuda Method']
         hunt_options = OptionMenu(make_counter, hunt_option, *methods)
         hunt_options.grid(row=1, column=0, columnspan=2, pady=5, padx=3)
         # cancel go back to main window
@@ -322,7 +412,41 @@ class Ui:
 
         entry_name.focus_force()
 
-    def openOptions(self, _event):
+    def openMainOptions(self, _event):
+        self.close_toplevel()
+        main_options = Toplevel(self.rootW)
+        display_var = StringVar()
+        monitors = []
+        display_options = {}
+        for display_nmr, display in enumerate(monitors):
+            Checkbutton(main_options,
+                        text=f'display {display_nmr}',
+                        variable=display_options[display],
+                        )
+
+        setdisplay = OptionMenu(main_options, display_var, *display_options)
+        setdisplay.pack()
+
+    def isDisabled(self):
+        return self.disabled_status
+
+    def disable(self):
+        self.disabled_status = True
+        # change the label in the main window to reflect that controls are turned off
+        self.score.config(text='Controls\nDisabled', font=self.font[45])
+        # hide all overlays when disabling the controls
+        self.overlay.withdraw()
+        self.overlay2.withdraw()
+
+    def enable(self, *_args):
+        self.disabled_status = False
+        # change the text from controls disable to the selected counter value
+        self.score.config(text=self.counter.value, font=self.font[75])
+
+    def inFocus(self):
+        return GetWindowText(GetForegroundWindow()) == self.rootW.title()
+
+    def openCounterOptions(self, _event):
         # close all other possible option windows
         self.close_toplevel()
 
@@ -331,10 +455,10 @@ class Ui:
             # changing the counter values
             self.counter.jump = int(step_size_entry.get()) if step_size_entry.get() else 1
             self.counter.value = int(set_count.get()) if set_count.get() else self.counter.value
-            # save all counters to 'counters.txt'
+            # save all counters to './saves/counters.txt'
             self.save()
             self.score.config(text=self.counter.value, font=self.font[75])
-            self.selectCounter()
+            self.showCounter()
 
         def showPokWindow():
             if show_pokemon['text'] == 'pokemon chance OFF':
@@ -388,7 +512,7 @@ class Ui:
 
             self.counter = self.counters[int(self.selection[0])]
 
-    def callback(self, event):
+    def listBoxSelect(self, event):
         if event.widget.curselection() != self.selection:
             # save current state of counter in the dict
             self.save()
@@ -398,12 +522,15 @@ class Ui:
 
             # open the newly selected counter object
             data = self.counters[self.counterIndex].value
-            if data < 10000:
-                self.score.configure(text=data, font=self.font[75])
-            elif data < 100000:
-                self.score.configure(text=data, font=self.font[70])
-            else:
-                self.score.configure(text=data, font=self.font[60])
+
+            # put the counter value into the score box as long as controls are enabled
+            if not self.isDisabled():
+                if data < 10000:
+                    self.score.configure(text=data, font=self.font[75])
+                elif data < 100000:
+                    self.score.configure(text=data, font=self.font[70])
+                else:
+                    self.score.configure(text=data, font=self.font[60])
 
             # save the selected counter as a single Counter object
             self.counter = self.counters[self.counterIndex]
@@ -414,17 +541,40 @@ class Ui:
 
             self.overlayCount.config(text=self.counter.value)
 
+    def Archive(self, _event):
+        c = self.counter
+        archive_file = open('./saves/archived.txt', 'a')
+        archive_file.write(f'{c.id} {c.name.replace(" ", "_")} {c.value} {c.jump} {c.method_id} {c.odds}\n')
+        self.deleteCounter(archiving=True)
+        archive_file.close()
+
     def save(self):
-        save_file = open('counters.txt', 'w')
+        save_file = open('./saves/counters.txt', 'w')
         for c in self.counters:
             save_file.write(f'{c.id} {c.name.replace(" ", "_")} {c.value} {c.jump} {c.method_id} {c.odds}\n')
         save_file.close()
-        save_file = open('methods.txt', 'w')
-        for m in self.gui2.method_list:
-            save_file.write(f'{m.method_id} {m.odds}\n')
 
     def save_quit(self):
         self.save()
         self.rootW.destroy()
 
         quit('The End!')
+
+
+if __name__ == '__main__':
+    import CounterReadClass as cR
+    import CounterClass as cC
+    counters = cR.CounterRead('./saves/counters.txt')   # string with counter objects read by CounterRead class from './saves/counters.txt'
+
+    counterList = []                                    # list to store counter objects in
+    # making counter object from the read line and storing in counterList
+    for line in counters:
+        item = line.split(' ')                          # individual characteristics of counter object are separated by spaces in the txt file
+
+        # check whether the read line has actual text in it (because the last line of the txt file is empty at all times
+        if item[0]:
+            counterList.append(cC.Counter(*item))       # counter needs 6 arguments and they are stored in multiple objects
+
+    root = Tk()             # start main window
+
+    gui = Ui(root, counterList)

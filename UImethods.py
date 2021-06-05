@@ -40,7 +40,7 @@ def dexnavChanceDec(step, neg_chance, chain=0):
 
 class UiMethods:
     def __init__(self, counter_list):
-        methods = CR.CounterRead('methods.txt')
+        methods = CR.CounterRead('saves/methods.txt')
         self.method_list = []
         self.chain = 1
         self.font = []
