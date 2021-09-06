@@ -34,6 +34,6 @@ class CounterReadIter:
 
 
 if __name__ == '__main__':
-    read = CounterRead
-    for index, line in enumerate(read('.\saves\counters.txt')):
+    read = CounterRead('.\\saves\\counters.txt')
+    for index, line in enumerate(read):
         print(f'counter{index + 1}, {line}')

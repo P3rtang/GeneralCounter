@@ -2,8 +2,8 @@ import tkinter
 from tkinter import *
 from tkinter import messagebox
 import time
-import CounterClass as CC
-import UImethods as UIM
+# noinspection PyUnresolvedReferences
+import CounterClass as cC
 import counterOptionClass as cOC
 from win32api import GetSystemMetrics
 from win32gui import GetWindowText, GetForegroundWindow
@@ -44,21 +44,31 @@ def dexnav_chance_dec(step, neg_chance, chain=0):
     return neg_chance
 
 
-def highestId():
-    with open('./saves/counters.txt') as saves:
-        saves = saves.read()
-    with open('./saves/archived.txt') as archive:
-        archive = archive.read()
+def get_highest_id(save_file, archive_file):
+    """
+    Function meant to return the number of counters saved in both the active save file and the archive file
+    This is done by counting and adding all the newlines in both save files
 
+    :param str save_file: save file location  for active counters
+    :param str archive_file: save file location for archived counters
+    :return int:
+    """
+    with open(save_file) as saves:
+        saves = saves.read()
+    with open(archive_file) as archive:
+        archive = archive.read()
+    # count every newline in both the saves and archive file, add them together and return
     highest_id = (saves + archive).count('\n')
-    print(highest_id)
     return highest_id
 
 
 class Ui:
-    def __init__(self, tkRoot, saves, _gui_chance=None):
+    # TODO: add docstring
+    def __init__(self, tk_root: Tk, saves: list, _gui_chance=None):
+        # TODO: make the window respond to resizing without crashing or creating blank space
         # list to keep track of all resizable widgets to customize the layout
         self.resizable = []
+        # TODO: frame rate should be tightened to a variable changed in the options menu
         self.frame_rate = 120
 
         # all counters are in saves
@@ -71,7 +81,7 @@ class Ui:
         # start index of selected counter as 0
         self.counterIndex = 0
         # active counter object
-        self.counter = CC.Counter(0, 'None', 0)
+        self.counter = cC.Counter(0, 'None', 0)
 
         # flag to disable all events and keyboard listeners
         self.disabled_status = False
@@ -85,7 +95,7 @@ class Ui:
         self.selection = None
 
         # start tkinter, rootW is the main root
-        self.rootW = tkRoot
+        self.rootW = tk_root
         self.height = 15
         self.width = 75
 
@@ -144,19 +154,19 @@ class Ui:
         new = Button(self.body, font=self.font[24], command=self.newCounter, text='NEW')
         new.grid(row=3, column=1, pady=(5, 0), ipadx=26)
 
-        self.archive_image = ImageTk.PhotoImage(Image.open('./bin/archive2.png'))
+        self.archive_image = ImageTk.PhotoImage(Image.open('../main/bin/archive2.png'))
 
         archive = Label(self.body, image=self.archive_image, width=60, height=60)
         archive.grid(row=4, column=2)
         archive.bind("<Button-1>", self.Archive)
 
-        self.option_image = ImageTk.PhotoImage(Image.open('./bin/cog.png'))
+        self.option_image = ImageTk.PhotoImage(Image.open('../main/bin/cog.png'))
 
         options = Label(self.body, image=self.option_image, width=60, height=60)
         options.grid(row=2, column=2)
         options.bind("<Button-1>", self.openMainOptions)
 
-        self.delete_image = ImageTk.PhotoImage(Image.open('./bin/trashcan.png'))
+        self.delete_image = ImageTk.PhotoImage(Image.open('../main/bin/trashcan.png'))
 
         delete = Label(self.body, image=self.delete_image, width=60, height=60)
         delete.grid(row=3, column=2)
@@ -201,16 +211,16 @@ class Ui:
 
         # overlay 2
 
-        self.overlay2.bind('<Button-1>', self.optionMenu)
+        self.overlay2.bind('<Button-1>', self.option_menu)
         self.overlay2.withdraw()
 
-    def isOverlayShown(self):
+    def is_overlay_shown(self):
         if self.overlay.winfo_ismapped():
             return True
         return False
 
-    def optionMenu(self, _counter):
-        def applyOption():
+    def option_menu(self, _counter):
+        def apply_option():
             # changing the counter values
             self.chain = int(set_count.get()) if set_count.get() else self.chain
             self.chance.config(text=f'{float(self.chance["text"].split(" - ")[0]):.3f} - {self.chain}')
@@ -237,7 +247,7 @@ class Ui:
         button_frame.pack()
 
         cancel = Button(button_frame, text='CANCEL', font=self.font[16], command=option_menu.destroy)
-        apply = Button(button_frame, text='APPLY', font=self.font[16], command=applyOption)
+        apply = Button(button_frame, text='APPLY', font=self.font[16], command=apply_option)
 
         cancel.grid(row=0, column=0, ipadx=8, sticky='w')
         apply.grid(row=0, column=1, ipadx=17, sticky='e')
@@ -324,7 +334,7 @@ class Ui:
 
     def toggle_counter_overlay(self):
         # if overlay is active hide it and show it in the other case
-        if self.isOverlayShown():
+        if self.is_overlay_shown():
             self.overlay.withdraw()
             self.overlay2.withdraw()
         else:
@@ -376,7 +386,7 @@ class Ui:
 
                     set_odds.destroy()
 
-                new_id = highestId() + 1
+                new_id = get_highest_id('./saves/counters.txt', './saves/archived.txt') + 1
 
                 m_id = methods.index(hunt_option.get())
 
@@ -395,7 +405,7 @@ class Ui:
                     next2.pack()
 
                 # make new counter object and add it to the list
-                counter = CC.Counter(new_id, entry_name.get(), 0, method_id=m_id, odds=odds)
+                counter = cC.Counter(new_id, entry_name.get(), 0, method_id=m_id, odds=odds)
                 self.counters.append(counter)
 
                 entry_name.delete(0, 'end')

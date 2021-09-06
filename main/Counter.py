@@ -1,5 +1,4 @@
 import tkinter as tk
-
 from pygame import mixer
 
 import time
@@ -13,19 +12,20 @@ import UI as UI
 
 
 class Debugger:
-    def __init__(self, tkRoot):
-        debuggerToplevel = tk.Toplevel(tkRoot)
+    def __init__(self, tk_root):
+        debugger_toplevel = tk.Toplevel(tk_root)
 
-        self.currentCounterInfo = tk.Label(debuggerToplevel, text=gui.counter)
+        self.currentCounterInfo = tk.Label(debugger_toplevel, text=gui.counter)
 
-        self.size = tk.Scale(debuggerToplevel, from_=10, to=50, orient='horizontal', command=self.changeMainFrameSize)
+        self.size = tk.Scale(debugger_toplevel, from_=10, to=50,
+                             orient='horizontal', command=self.change_main_frame_size)
         # self.size.bind("<Button-1>", self.changeMainFrameSize)
         self.size.pack()
 
     def start(self):
         self.currentCounterInfo.pack()
 
-    def changeMainFrameSize(self, *_event):
+    def change_main_frame_size(self, *_event):
         gui.counterList.config(height=int(self.size.get() / 2.75), width=self.size.get())
         gui.scoreFrame.config(height=int(self.size.get() * 7.5), width=self.size.get() * 7.5)
 
@@ -61,12 +61,12 @@ def main(main_root, queue1):
                         gui.unpause_run_time()
                         gui.counter.value += gui.counter.jump
                         # play clicking sound as feedback
-                        mix_play('bin/mouse-click-clicking-single-click.mp3')
+                        mix_play('../main/bin/mouse-click-clicking-single-click.mp3')
                     elif data == 12:
                         gui.unpause_run_time()
                         gui.counter.value -= gui.counter.jump
                         # play the reverse of the clicking sound as feedback
-                        mix_play('bin/mouse-click-clicking-reverse-click.mp3')
+                        mix_play('../main/bin/mouse-click-clicking-reverse-click.mp3')
                         # argument for gui.update_gui_chance that indicates that the counter has decreased
                         dec = True
                     # show or hide the overlays
@@ -119,7 +119,7 @@ def on_release(event, queue1):
 
 
 # string with counter objects read by CounterRead class from './saves/counters.txt'
-counters = cR.CounterRead('./saves/counters.txt')
+counters = cR.CounterRead('.\\saves\\counters.txt')
 
 # list to store counter objects in
 counterList = []
@@ -132,6 +132,7 @@ for line in counters:
     # check whether the read line has actual text in it
     # because the last line of the txt file is an empty string at all times
     if item[0]:
+        print(item)
         counterList.append(cC.Counter(*item))       # counter needs 7 arguments and they are stored in multiple objects
 
 
