@@ -44,14 +44,21 @@ def dexnav_chance_dec(step, neg_chance, chain=0):
     return neg_chance
 
 
-def highestId():
-    with open('./saves/counters.txt') as saves:
-        saves = saves.read()
-    with open('./saves/archived.txt') as archive:
-        archive = archive.read()
+def get_highest_id(save_file, archive_file):
+    """
+    Function meant to return the number of counters saved in both the active save file and the archive file
+    This is done by counting and adding all the newlines in both save files
 
+    :param str save_file: save file location  for active counters
+    :param str archive_file: save file location for archived counters
+    :return int:
+    """
+    with open(save_file) as saves:
+        saves = saves.read()
+    with open(archive_file) as archive:
+        archive = archive.read()
+    # count every newline in both the saves and archive file, add them together and return
     highest_id = (saves + archive).count('\n')
-    print(highest_id)
     return highest_id
 
 
@@ -376,7 +383,7 @@ class Ui:
 
                     set_odds.destroy()
 
-                new_id = highestId() + 1
+                new_id = get_highest_id('./saves/counters.txt', './saves/archived.txt') + 1
 
                 m_id = methods.index(hunt_option.get())
 
