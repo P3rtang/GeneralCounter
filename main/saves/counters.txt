@@ -1,0 +1,6 @@
+1 mareep_(heartgold) 5200 1 0 8192.0 8348.42638015747
+4 Ditto_(OR) 0 1 1 1.0 0.0
+5 Ditto_(sun) 569 1 2 1 0.0
+7 Poipole_(US) 2564 1 0 4096.0 0.0
+9 Zangoose_(OR) 25 1 2 1 0.0
+10 Amaura_(sword) 156 1 0 1365.666720926762 0.0

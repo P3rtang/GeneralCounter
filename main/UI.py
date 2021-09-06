@@ -65,8 +65,8 @@ class Ui:
         self.counters = saves
 
         # make secondary extra features window
-        self.gui2 = UIM.UiMethods(self.counters)
-        self.gui2.root.withdraw()
+        # self.gui2 = UIM.UiMethods(self.counters)
+        # self.gui2.root.withdraw()
 
         # start index of selected counter as 0
         self.counterIndex = 0
