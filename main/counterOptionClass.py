@@ -46,7 +46,7 @@ class CounterOption:
         self.parent.save()
         self.parent.score.config(text=self.parent.counter.value, font=self.parent.font[75])
         self.option_menu.destroy()
-        self.parent.start()
+        self.parent.show_counter_listbox()
 
     def showPokWindow(self):
         if self.show_pokemon['text'] == 'chance OFF':
@@ -67,7 +67,7 @@ class CounterOption:
 
     def close(self):
         self.option_menu.destroy()
-        self.parent.start()
+        self.parent.show_counter_listbox()
 
 
 if __name__ == '__main__':

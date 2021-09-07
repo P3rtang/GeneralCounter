@@ -4,7 +4,7 @@ from tkinter import messagebox
 import time
 # noinspection PyUnresolvedReferences
 import CounterClass as cC
-import counterOptionClass as cOC
+import mainOptionClass as cOC
 from win32api import GetSystemMetrics
 from win32gui import GetWindowText, GetForegroundWindow
 from PIL import ImageTk, Image
@@ -115,7 +115,7 @@ class Ui:
 
         # TODO: clicking in the window(listbox or outside) should deselect any counter
         # bind selecting a counter to listBoxSelect which in turn activates the counter object and refreshes the window
-        self.counterList.bind("<<ListboxSelect>>", self.listBoxSelect)
+        self.counterList.bind("<<ListboxSelect>>", self.listbox_select)
 
         # gives a frame to store the label with; current time / time since opening counter (uptime)
         # change between the two options by clicking the time frame
@@ -151,27 +151,28 @@ class Ui:
         select.grid(row=2, column=1, pady=(5, 0), padx=10)
         delete = Button(self.body, font=self.font[24], command=self.delete_counter, text='DELETE')
         delete.grid(row=4, column=1, pady=5)
-        new = Button(self.body, font=self.font[24], command=self.newCounter, text='NEW')
+        new = Button(self.body, font=self.font[24], command=self.new_counter, text='NEW')
         new.grid(row=3, column=1, pady=(5, 0), ipadx=26)
 
-        self.archive_image = ImageTk.PhotoImage(Image.open('../main/bin/archive2.png'))
+        self.archive_image = ImageTk.PhotoImage(Image.open('../bin/archive2.png'))
 
         archive = Label(self.body, image=self.archive_image, width=60, height=60)
         archive.grid(row=4, column=2)
-        archive.bind("<Button-1>", self.Archive)
+        archive.bind("<Button-1>", self.archive)
 
-        self.option_image = ImageTk.PhotoImage(Image.open('../main/bin/cog.png'))
+        self.option_image = Image.open('../bin/cog.png')
+        self.option_image_tk = ImageTk.PhotoImage(self.option_image)
 
-        options = Label(self.body, image=self.option_image, width=60, height=60)
+        options = Label(self.body, image=self.option_image_tk, width=60, height=60)
         options.grid(row=2, column=2)
-        options.bind("<Button-1>", self.openMainOptions)
+        options.bind("<Button-1>", self.open_main_options)
 
-        self.delete_image = ImageTk.PhotoImage(Image.open('../main/bin/trashcan.png'))
+        self.delete_image = ImageTk.PhotoImage(Image.open('../bin/trashcan.png'))
 
         delete = Label(self.body, image=self.delete_image, width=60, height=60)
         delete.grid(row=3, column=2)
         delete.bind("<Button-1>", self.delete_counter)
-        self.start()
+        self.show_counter_listbox()
         self.rootW.protocol("WM_DELETE_WINDOW", self.save_quit)
 
         self.screen_width = GetSystemMetrics(0)
@@ -327,7 +328,7 @@ class Ui:
                 self.save()
                 child.destroy()
 
-    def refresh_Listbox(self):
+    def refresh_listbox(self):
         self.counterList.delete(0, 'end')
         for counter in self.counters:
             self.counterList.insert(counter.id, counter.name)
@@ -339,7 +340,7 @@ class Ui:
             self.overlay2.withdraw()
         else:
             # if the controls are disabled ask whether to enable the controls or just overlay the counter
-            if self.isDisabled():
+            if self.is_disabled():
                 if messagebox.askyesno('re-enable controls?', 'Do you want to re-enable the controls?'):
                     self.enable()
             self.overlayCount.config(text=self.counter.value)
@@ -361,9 +362,9 @@ class Ui:
             self.score.config(text='None Selected', font=self.font[24])
             self.counters.pop(self.counterIndex)
             self.save()
-            self.refresh_Listbox()
+            self.refresh_listbox()
 
-    def newCounter(self):
+    def new_counter(self):
         # make new Counter Object and add to the library
 
         def next1():
@@ -386,7 +387,7 @@ class Ui:
 
                     set_odds.destroy()
 
-                new_id = get_highest_id('./saves/counters.txt', './saves/archived.txt') + 1
+                new_id = get_highest_id('../saves/counters.txt', '../saves/archived.txt') + 1
 
                 m_id = methods.index(hunt_option.get())
 
@@ -410,7 +411,7 @@ class Ui:
 
                 entry_name.delete(0, 'end')
                 make_counter.destroy()
-                self.refresh_Listbox()
+                self.refresh_listbox()
                 print(counter.odds, m_id)
 
         # Child window for the name of the Counter
@@ -433,32 +434,16 @@ class Ui:
 
         entry_name.focus_force()
 
-    def openMainOptions(self, _event):
-        # TODO: controls disabled after x minutes
-        self.close_toplevel()
-        main_options = Toplevel(self.rootW)
-        display_var = StringVar()
-        monitors = []
-        display_options = {}
-        for display_nmr, display in enumerate(monitors):
-            Checkbutton(main_options,
-                        text=f'display {display_nmr}',
-                        variable=display_options[display],
-                        )
-
-        setDisplay = OptionMenu(main_options, display_var, *display_options)
-        setDisplay.pack()
-
     def pause_run_time(self):
         self.paused_status = True
 
     def unpause_run_time(self):
         self.paused_status = False
 
-    def isPaused(self):
+    def is_paused(self):
         return self.paused_status
 
-    def isDisabled(self):
+    def is_disabled(self):
         return self.disabled_status
 
     def disable(self):
@@ -474,43 +459,59 @@ class Ui:
         # change the text from controls disable to the selected counter value
         self.score.config(text=self.counter.value, font=self.font[75])
 
-    def inFocus(self):
+    def is_in_focus(self):
         return GetWindowText(GetForegroundWindow()) == self.rootW.title()
 
-    def isCounterSelected(self):
+    def is_counter_selected(self):
         return self.selection is not None
 
-    def openCounterOptions(self, _event):
+    def open_main_options(self, _event):
         """
-        Opens the optional menu to change values of a counter object with a Toplevel UI
-        :param _event:
+        Open Menu to change basic options and parameters of the program
+        :param tkinter.Event _event:
+r       :return:
+        """
+        # TODO: add controls disabled after x minutes
+        self.close_toplevel()
+        cOC.MainOptionMenu(self)
+
+        self.score.config(text='close settings', font=self.font[24])
+        self.score.bind("<Button-1>", self.show_counter_listbox)
+        self.counterList.delete(0, 'end')
+
+    def open_counter_options(self, _event):
+        """
+        Open Menu to change basic values and parameters of a counter
+        :param tkinter.Event _event:
         :return:
         """
-        if self.isCounterSelected():
+        if self.is_counter_selected():
             # close all other possible option windows
             self.close_toplevel()
+            # pause if the timer is running
+            self.pause_run_time()
 
             self.score.config(text='close settings', font=self.font[24])
-            self.score.bind("<Button-1>", self.start)
+            self.score.bind("<Button-1>", self.show_counter_listbox)
             self.counterList.delete(0, 'end')
 
             cOC.CounterOption(self)
 
-    def start(self, *_event):
-        if self.isCounterSelected():
-            if self.isDisabled():
+    def show_counter_listbox(self, *_event):
+        if self.is_counter_selected():
+            if self.is_disabled():
                 self.score.config(text='Controls\nDisabled', font=self.font[45])
             self.score.config(text=self.counter.value, font=self.fontCounter)
         else:
             self.score.config(text='none selected', font=self.font[24])
-        self.score.bind("<Button-1>", self.openCounterOptions)
+        self.score.bind("<Button-1>", self.open_counter_options)
 
         self.counterList = Listbox(self.body, width=self.width // 2 - 1, height=self.height - 1, font=self.font[24])
-        self.refresh_Listbox()
+        self.refresh_listbox()
         self.counterList.grid(row=0, rowspan=5)
-        self.counterList.bind("<<ListboxSelect>>", self.listBoxSelect)
+        self.counterList.bind("<<ListboxSelect>>", self.listbox_select)
 
-    def listBoxSelect(self, event):
+    def listbox_select(self, event):
         if event.widget.curselection() != self.selection:
             # save current state of counter in the dict
             self.save()
@@ -524,7 +525,7 @@ class Ui:
             data = self.counters[self.counterIndex].value
 
             # put the counter value into the score box as long as controls are enabled
-            if not self.isDisabled():
+            if not self.is_disabled():
                 if data < 10000:
                     self.score.configure(text=data, font=self.font[75])
                 elif data < 100000:
@@ -549,16 +550,16 @@ class Ui:
         # self.counterList.config(height=max(5, height // 38), width=width // 27)
         # self.rootW.geometry(f'{width}x{height}')'''
 
-    def Archive(self, _event):
+    def archive(self, _event):
         c = self.counter
-        archive_file = open('./saves/archived.txt', 'a')
+        archive_file = open('../saves/archived.txt', 'a')
         archive_file.write(f'{c.id} {c.name.replace(" ", "_")} {c.value} {c.jump}'
                            f' {c.method_id} {c.odds} {c.active_time}\n')
         self.delete_counter(archiving=True)
         archive_file.close()
 
     def save(self):
-        save_file = open('./saves/counters.txt', 'w')
+        save_file = open('../saves/counters.txt', 'w')
         for c in self.counters:
             save_file.write(f'{c.id} {c.name.replace(" ", "_")} {c.value} {c.jump}'
                             f' {c.method_id} {c.odds} {c.active_time}\n')
@@ -569,25 +570,25 @@ class Ui:
         self.rootW.destroy()
 
 
-def change_tk_Label_colours(tk_Label: tkinter.Label, fg_colour='#000000', bg_colour='#FFFFFF', transparent=False):
+def change_tk_label_colours(tk_label: tkinter.Label, fg_colour='#000000', bg_colour='#FFFFFF', transparent=False):
     """
     change the appearance of the overlay
 
-    :param tk_Label: tkinter Label
+    :param tk_label: tkinter Label
     :param fg_colour: colour of the text in the overlay (default= black)
     :param bg_colour: colour of the background (default= white) (ignored if background is transparent)
     :param transparent: make the background transparent (default= False)
     :return: None
     """
 
-    tk_Label.config(fg=fg_colour)
+    tk_label.config(fg=fg_colour)
     if transparent:
         bg_colour = hex(int(fg_colour.strip("#"), 16) + 1).replace("0x", '#')
-        tk_Label.config(bg=bg_colour)
-        parent = tk_Label.master
+        tk_label.config(bg=bg_colour)
+        parent = tk_label.master
         parent.attributes('-transparentcolor', bg_colour)
     else:
-        tk_Label.config(bg=bg_colour)
+        tk_label.config(bg=bg_colour)
 
 
 if __name__ == '__main__':
