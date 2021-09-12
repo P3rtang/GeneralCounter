@@ -1,44 +1,49 @@
 # open child window with the current value of the chosen Counter object
 from tkinter import *
+import CounterReadClass as cR
 
 
-class overlayUI:
+class OverlayUi:
     def __init__(self, main_ui):
-        self.mainUI = main_ui
+        self.main_ui = main_ui
 
         self.overlay = Tk()
-        self.overlayCount = Label(self.overlay,
-                                  text=str(self.mainUI.counter.value),
-                                  font=self.mainUI.font[75],
-                                  bg=self.mainUI.configs[self.mainUI.configNmr][2])
-        self.overlayCount.pack()
+        self.overlay_count = Label(self.overlay,
+                                   text=str(self.main_ui.counter.value),
+                                   font=self.main_ui.font[75],
+                                   bg=self.main_ui.configs[self.main_ui.configNmr][2])
+        self.overlay_count.pack()
+        # make windowless
+        self.overlay.overrideredirect(True)
 
-        self.overlay.overrideredirect(True)  # windowless
-
-        # self.overlay.bind("<*>", self.changeCounter)
-        # self.overlay.bind("</>", lambda i=True: self.mainUI.gui2.update(self.mainUI.counter, chain_lost=i))
-
-        # when escape is pressed with the overlay active close all the overlays (including the extra feature window)
-        # self.overlay.bind("<Escape>", self.exitOverlay)
-
-    def changeCounter(self, _event):
+    def change_counter(self, _event):
         self.overlay.attributes('-transparentcolor', '')
-        self.mainUI.gui2.root.attributes('-transparentcolor', '')
+        self.main_ui.gui2.root.attributes('-transparentcolor', '')
 
-        self.overlayCount.config(bg=self.mainUI.configs[self.mainUI.configNmr][2])
-        self.mainUI.gui2.chance.config(bg=self.mainUI.configs[self.mainUI.configNmr][2])
+        self.overlay_count.config(bg=self.main_ui.configs[self.main_ui.configNmr][2])
+        self.main_ui.gui2.chance.config(bg=self.main_ui.configs[self.main_ui.configNmr][2])
 
-        if self.mainUI.configs[self.mainUI.configNmr][0]:
-            self.overlay.attributes('-transparentcolor', self.overlayCount['bg'])
-            self.mainUI.gui2.root.attributes('-transparentcolor', self.mainUI.gui2.chance['bg'])
+        if self.main_ui.configs[self.main_ui.configNmr][0]:
+            self.overlay.attributes('-transparentcolor', self.overlay_count['bg'])
+            self.main_ui.gui2.root.attributes('-transparentcolor', self.main_ui.gui2.chance['bg'])
 
-        self.overlayCount.config(fg=self.mainUI.configs[self.mainUI.configNmr][1])
-        self.mainUI.gui2.chance.config(fg=self.mainUI.configs[self.mainUI.configNmr][1])
+        self.overlay_count.config(fg=self.main_ui.configs[self.main_ui.configNmr][1])
+        self.main_ui.gui2.chance.config(fg=self.main_ui.configs[self.main_ui.configNmr][1])
         # roll over to the next config for next click
-        self.mainUI.configNmr += 1
-        self.mainUI.configNmr %= len(self.mainUI.configs)
+        self.main_ui.configNmr += 1
+        self.main_ui.configNmr %= len(self.main_ui.configs)
 
-    def exitOverlay(self, _event):
-        self.mainUI.save()
+    def close_overlay(self, _event):
+        self.main_ui.save()
         self.overlay.destroy()
-        self.mainUI.gui2.root.withdraw()
+        self.main_ui.gui2.root.withdraw()
+
+
+if __name__ == '__main__':
+    root = Tk()
+    counters = cR.CounterRead('..\\saves\\counters.txt').get_list()
+    import UI
+    root_ui = UI.Ui(root, counters)
+    overlay_test = OverlayUi(root_ui)
+
+    root.mainloop()

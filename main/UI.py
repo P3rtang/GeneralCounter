@@ -3,8 +3,8 @@ from tkinter import *
 from tkinter import messagebox
 import time
 # noinspection PyUnresolvedReferences
-import CounterClass as cC
-import mainOptionClass as cOC
+from .CounterClass import Counter
+from .mainOptionClass import MainOptionMenu, CounterOption
 from win32api import GetSystemMetrics
 from win32gui import GetWindowText, GetForegroundWindow
 from PIL import ImageTk, Image
@@ -81,7 +81,7 @@ class Ui:
         # start index of selected counter as 0
         self.counterIndex = 0
         # active counter object
-        self.counter = cC.Counter(0, 'None', 0)
+        self.counter = Counter(0, 'None', 0)
 
         # flag to disable all events and keyboard listeners
         self.disabled_status = False
@@ -154,20 +154,20 @@ class Ui:
         new = Button(self.body, font=self.font[24], command=self.new_counter, text='NEW')
         new.grid(row=3, column=1, pady=(5, 0), ipadx=26)
 
-        self.archive_image = ImageTk.PhotoImage(Image.open('../bin/archive2.png'))
+        self.archive_image = ImageTk.PhotoImage(Image.open('./bin/archive2.png'))
 
         archive = Label(self.body, image=self.archive_image, width=60, height=60)
         archive.grid(row=4, column=2)
         archive.bind("<Button-1>", self.archive)
 
-        self.option_image = Image.open('../bin/cog.png')
+        self.option_image = Image.open('./bin/cog.png')
         self.option_image_tk = ImageTk.PhotoImage(self.option_image)
 
         options = Label(self.body, image=self.option_image_tk, width=60, height=60)
         options.grid(row=2, column=2)
         options.bind("<Button-1>", self.open_main_options)
 
-        self.delete_image = ImageTk.PhotoImage(Image.open('../bin/trashcan.png'))
+        self.delete_image = ImageTk.PhotoImage(Image.open('./bin/trashcan.png'))
 
         delete = Label(self.body, image=self.delete_image, width=60, height=60)
         delete.grid(row=3, column=2)
@@ -559,7 +559,7 @@ r       :return:
         archive_file.close()
 
     def save(self):
-        save_file = open('../saves/counters.txt', 'w')
+        save_file = open('./saves/counters.txt', 'w')
         for c in self.counters:
             save_file.write(f'{c.id} {c.name.replace(" ", "_")} {c.value} {c.jump}'
                             f' {c.method_id} {c.odds} {c.active_time}\n')

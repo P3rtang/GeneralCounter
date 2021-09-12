@@ -1,8 +1,5 @@
 import tkinter as tk
-import CounterClass as cC
-import UI
 from PIL import ImageTk
-import TimeSetter as tS
 
 
 class CounterOption:
@@ -59,7 +56,8 @@ class CounterOption:
             self.adv_time_setter.close()
 
     def set_adv_time(self, _event):
-        self.adv_time_setter = tS.TimeSetter(self.parent.rootW)
+        from .TimeSetter import TimeSetter
+        self.adv_time_setter = TimeSetter(self.parent.rootW)
 
     # save and apply chosen options
     def apply_option(self):
@@ -110,6 +108,8 @@ class MainOptionMenu:
 
 
 if __name__ == '__main__':
+    from .CounterClass import Counter
+    from .UI import Ui
     root = tk.Tk()
-    CounterOption(UI.Ui(root, [cC.Counter(1, 'test', 0)]))
+    CounterOption(Ui(root, [Counter(1, 'test', 0)]))
     root.mainloop()

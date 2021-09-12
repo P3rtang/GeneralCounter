@@ -1,6 +1,3 @@
-from CounterReadClass import CounterRead
-
-
 class Counter:
     def __init__(self, c_id, name, value, jump=1, method_id=0, odds=8192, active_time=0):
         self.id = int(c_id)
@@ -33,6 +30,7 @@ class Counter:
 
 
 if __name__ == '__main__':
+    from .CounterReadClass import CounterRead
     counters = CounterRead('./saves/counters.txt')
     counterList = []
     for line in counters:
