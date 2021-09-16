@@ -1,5 +1,5 @@
 import tkinter as tk
-import CounterClass as cC
+import Counter as cC
 import UI as UI
 
 

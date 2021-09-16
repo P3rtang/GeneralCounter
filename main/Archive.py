@@ -1,5 +1,5 @@
 import tkinter as tk
-import CounterReadClass as Cr
+import CounterRead as Cr
 from win32api import GetSystemMetrics
 
 

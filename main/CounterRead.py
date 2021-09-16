@@ -1,4 +1,4 @@
-from .CounterClass import Counter
+from .Counter import Counter
 
 
 class CounterRead:

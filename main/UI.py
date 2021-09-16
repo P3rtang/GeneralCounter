@@ -1,13 +1,12 @@
-import tkinter
 from tkinter import *
 from tkinter import messagebox
 import time
-# noinspection PyUnresolvedReferences
-from .CounterClass import Counter
-from .mainOptionClass import MainOptionMenu, CounterOption
 from win32api import GetSystemMetrics
 from win32gui import GetWindowText, GetForegroundWindow
 from PIL import ImageTk, Image
+from .Counter import Counter
+from .MainOption import MainOptionMenu, CounterOption
+from .overlayUi import OverlayUi
 
 
 def dexnav_chance_inc(step, neg_chance, chain=0):
@@ -81,7 +80,7 @@ class Ui:
         # start index of selected counter as 0
         self.counterIndex = 0
         # active counter object
-        self.counter = Counter(0, 'None', 0)
+        self.counter = Counter(0, 'None', 'none selected')
 
         # flag to disable all events and keyboard listeners
         self.disabled_status = False
@@ -109,14 +108,12 @@ class Ui:
         self.body = Frame(self.rootW)
         self.body.pack(fill='both')
 
-        # list with all active counters
-        # interact by clicking
+        self.MainOptions = MainOptionMenu(self)
+        self.CounterOptions = CounterOption(self)
+        self.is_menu_opened = False
+
         self.counterList = Listbox(self.body, width=self.width // 2 - 1, height=self.height - 1, font=self.font[24])
-
         # TODO: clicking in the window(listbox or outside) should deselect any counter
-        # bind selecting a counter to listBoxSelect which in turn activates the counter object and refreshes the window
-        self.counterList.bind("<<ListboxSelect>>", self.listbox_select)
-
         # gives a frame to store the label with; current time / time since opening counter (uptime)
         # change between the two options by clicking the time frame
         self.timeFrame = Frame(self.body, borderwidth=1, relief="sunken",
@@ -124,12 +121,19 @@ class Ui:
         self.timeFrame.grid(row=0, column=1, rowspan=1, columnspan=2)
         self.timeFrame.pack_propagate(False)
 
+        # current mode the time window is in
+        # default = local_time when no counter is selected
+        self.timeLabel_states = ['local_time', 'run_time']
+        self.timeLabel_state = self.timeLabel_states[0]
+        # save time when label changed between local an run time in order to show the setting for (default=1) seconds
+        # TODO add default time state as an option in the menu
+        self.timeLabel_change_state = time.time()
+        self.timeLabel_show_state_time = 1
+
         # Label with the actual current time / uptime of the selected counter
-        self.timeLabel = Label(self.timeFrame, text=f'', font=self.font[24])
+        self.timeLabel = Label(self.timeFrame, text=f'{self.timeLabel_state.replace("_", " ")}', font=self.font[24])
         self.timeLabel.pack(fill="both", expand=True)
         self.timeLabel.bind('<Button-1>', func=self.toggle_time_shown)
-        self.time_state = 'local_time'
-        self.timeLabel_change_state = time.time()
 
         self.last_input_time = time.time()
         self.pause_interval = 120
@@ -145,14 +149,12 @@ class Ui:
         self.score = Label(self.scoreFrame, text='None Selected', font=self.font[24])
         self.score.pack(fill="both", expand=True)
 
-        self.overlayCount = Label(self.rootW, text=0, font=self.font[75])
-
-        select = Button(self.body, font=self.font[24], command=self.toggle_counter_overlay, text='SELECT')
+        select = Button(self.body, font=self.font[24], command=self.toggle_counter_overlay, text='OVERLAY')
         select.grid(row=2, column=1, pady=(5, 0), padx=10)
         delete = Button(self.body, font=self.font[24], command=self.delete_counter, text='DELETE')
-        delete.grid(row=4, column=1, pady=5)
+        delete.grid(row=4, column=1, pady=5, ipadx=14)
         new = Button(self.body, font=self.font[24], command=self.new_counter, text='NEW')
-        new.grid(row=3, column=1, pady=(5, 0), ipadx=26)
+        new.grid(row=3, column=1, pady=(5, 0), ipadx=41)
 
         self.archive_image = ImageTk.PhotoImage(Image.open('./bin/archive2.png'))
 
@@ -181,18 +183,7 @@ class Ui:
         self.rootW.geometry(f'+{self.screen_width // 2 - 477}+{self.screen_height // 2 - 256}')
         self.rootW.bind("<Configure>", print('window size change...WIP'))
 
-        self.overlay = Toplevel(self.rootW)
-
-        self.overlayCount = Label(self.overlay,
-                                  text=self.counter.value,
-                                  font=self.font[75],
-                                  bg='white')
-        self.overlayCount.pack()
-
-        self.overlay.overrideredirect(True)
-        self.overlay.wm_attributes("-topmost", True)
-
-        self.overlay.withdraw()
+        self.overlay = OverlayUi(self, self.counter.value)
 
         # gui 2 for extra info specific to pokemon hunting
         self.overlay2 = Toplevel(self.rootW)
@@ -211,14 +202,8 @@ class Ui:
         self.overlay2.wm_attributes("-topmost", True)
 
         # overlay 2
-
         self.overlay2.bind('<Button-1>', self.option_menu)
         self.overlay2.withdraw()
-
-    def is_overlay_shown(self):
-        if self.overlay.winfo_ismapped():
-            return True
-        return False
 
     def option_menu(self, _counter):
         def apply_option():
@@ -268,7 +253,7 @@ class Ui:
             self.chain += 1
 
         # normal random encounter with odds store in self.counter.odds method is stored in method_list
-        if method == 0:
+        if method == 0 and self.counter.value:
             cur_chance = 1 - (1 - 1 / self.counter.odds) ** self.counter.value
             self.chance.config(text=f'{round(cur_chance * 100, 3):.3f}%')
 
@@ -333,24 +318,40 @@ class Ui:
         for counter in self.counters:
             self.counterList.insert(counter.id, counter.name)
 
-    def toggle_counter_overlay(self):
-        # if overlay is active hide it and show it in the other case
-        if self.is_overlay_shown():
-            self.overlay.withdraw()
-            self.overlay2.withdraw()
-        else:
-            # if the controls are disabled ask whether to enable the controls or just overlay the counter
-            if self.is_disabled():
-                if messagebox.askyesno('re-enable controls?', 'Do you want to re-enable the controls?'):
-                    self.enable()
-            self.overlayCount.config(text=self.counter.value)
-            self.overlay.deiconify()
-            self.overlay2.deiconify()
+    def closed_menu(self):
+        self.score.unbind('<Button-1>')
+        self.counterList.grid(row=0, rowspan=5)
+        self.score.config(text=self.counter.value, font=self.font[75])
+        self.score.bind('<Button-1>', self.open_counter_options)
+        self.is_menu_opened = False
+        self.score.focus_force()
 
-    def toggle_time_shown(self, *_event):
-        self.time_state = 'local_time' if self.time_state == 'run_time' else 'run_time'
-        self.timeLabel.config(text=f'{self.time_state.replace("_", " ")}')
+    def toggle_time_shown(self, *_args, new_state=None):
+        """
+        switch between time modes shown
+        if time_new_state is specified switch to that
+
+        :param new_state: 2 possible options 'local_time', 'run_time'
+        :return: None
+        """
+        if new_state not in self.timeLabel_states and new_state is not None:
+            raise ValueError(f'new_state must be one of {self.timeLabel_states} or None not {new_state}')
+        elif new_state:
+            self.timeLabel_state = new_state
+        else:
+            self.timeLabel_state = 'local_time' if self.timeLabel_state == 'run_time' else 'run_time'
+        self.timeLabel.config(text=f'{self.timeLabel_state.replace("_", " ")}')
         self.timeLabel_change_state = time.time()
+
+    def update_time(self):
+        cur_time = time.time()
+        if (cur_time - self.timeLabel_change_state > self.timeLabel_show_state_time
+                and self.timeLabel_state == 'local_time'):
+            self.timeLabel.config(text=f'{time.strftime("%H:%M:%S")}')
+        elif cur_time - self.timeLabel_change_state > self.timeLabel_show_state_time:
+            t = self.counter.active_time
+            self.timeLabel.config(text=f'{int(t // 3600):02d}:{int(t // 60 % 60):02d}'
+                                       f':{int(t%60):02d}.{int((t-int(t))*100):02d}')
 
     def delete_counter(self, archiving=False):
         operation = ('archive', 'archiving') if archiving else ('delete', 'deleting')
@@ -451,7 +452,7 @@ class Ui:
         # change the label in the main window to reflect that controls are turned off
         self.score.config(text='Controls\nDisabled', font=self.font[45])
         # hide all overlays when disabling the controls
-        self.overlay.withdraw()
+        self.overlay.hide()
         self.overlay2.withdraw()
 
     def enable(self, *_args):
@@ -466,36 +467,24 @@ class Ui:
         return self.selection is not None
 
     def open_main_options(self, _event):
-        """
-        Open Menu to change basic options and parameters of the program
-        :param tkinter.Event _event:
-r       :return:
-        """
-        # TODO: add controls disabled after x minutes
         self.close_toplevel()
-        cOC.MainOptionMenu(self)
+        self.is_menu_opened = True
+        self.MainOptions.show()
 
         self.score.config(text='close settings', font=self.font[24])
-        self.score.bind("<Button-1>", self.show_counter_listbox)
-        self.counterList.delete(0, 'end')
+        self.score.bind("<Button-1>", self.MainOptions.close_menu)
 
     def open_counter_options(self, _event):
-        """
-        Open Menu to change basic values and parameters of a counter
-        :param tkinter.Event _event:
-        :return:
-        """
-        if self.is_counter_selected():
-            # close all other possible option windows
+        if self.counterList.curselection():
             self.close_toplevel()
-            # pause if the timer is running
-            self.pause_run_time()
+            self.is_menu_opened = True
+            self.CounterOptions.open(self.counter)
 
             self.score.config(text='close settings', font=self.font[24])
-            self.score.bind("<Button-1>", self.show_counter_listbox)
-            self.counterList.delete(0, 'end')
+            self.score.bind("<Button-1>", self.MainOptions.close_menu)
 
-            cOC.CounterOption(self)
+    def toggle_counter_overlay(self):
+        self.overlay.hide() if self.overlay.is_active else self.overlay.show()
 
     def show_counter_listbox(self, *_event):
         if self.is_counter_selected():
@@ -505,8 +494,6 @@ r       :return:
         else:
             self.score.config(text='none selected', font=self.font[24])
         self.score.bind("<Button-1>", self.open_counter_options)
-
-        self.counterList = Listbox(self.body, width=self.width // 2 - 1, height=self.height - 1, font=self.font[24])
         self.refresh_listbox()
         self.counterList.grid(row=0, rowspan=5)
         self.counterList.bind("<<ListboxSelect>>", self.listbox_select)
@@ -516,7 +503,7 @@ r       :return:
             # save current state of counter in the dict
             self.save()
             self.unpause_run_time()
-            self.toggle_time_shown()
+            self.toggle_time_shown(new_state='run_time')
 
             # save index of selected object
             self.counterIndex = self.counterList.index('anchor')
@@ -538,11 +525,9 @@ r       :return:
             # save the selected counter as a single Counter object
             self.counter = self.counters[self.counterIndex]
 
-            self.selection = event.widget.curselection()
-
             self.update_gui_chance(chain_lost=True)
 
-            self.overlayCount.config(text=self.counter.value)
+            self.overlay.update(self.counter.value)
 
     '''def changedWindowSize(self, _event):
         _height = _event.height
@@ -570,30 +555,9 @@ r       :return:
         self.rootW.destroy()
 
 
-def change_tk_label_colours(tk_label: tkinter.Label, fg_colour='#000000', bg_colour='#FFFFFF', transparent=False):
-    """
-    change the appearance of the overlay
-
-    :param tk_label: tkinter Label
-    :param fg_colour: colour of the text in the overlay (default= black)
-    :param bg_colour: colour of the background (default= white) (ignored if background is transparent)
-    :param transparent: make the background transparent (default= False)
-    :return: None
-    """
-
-    tk_label.config(fg=fg_colour)
-    if transparent:
-        bg_colour = hex(int(fg_colour.strip("#"), 16) + 1).replace("0x", '#')
-        tk_label.config(bg=bg_colour)
-        parent = tk_label.master
-        parent.attributes('-transparentcolor', bg_colour)
-    else:
-        tk_label.config(bg=bg_colour)
-
-
 if __name__ == '__main__':
-    import CounterReadClass as cR
-    import CounterClass as cC
+    import CounterRead as cR
+    import Counter as cC
     # string with counter objects read by CounterRead class from './saves/counters.txt'
     counters = cR.CounterRead('./saves/counters.txt')
     # list to store counter objects in

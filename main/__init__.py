@@ -25,7 +25,7 @@ class Threading:
 
 class StartCounter:
     def __init__(self):
-        from .CounterReadClass import CounterRead
+        from .CounterRead import CounterRead
         self.root = tk.Tk()
         self.cur_time = time.time()
 
@@ -50,13 +50,8 @@ class StartCounter:
                     if not self.gui.is_paused():
                         self.gui.counter.active_time += change
 
-                    if self.cur_time - self.gui.timeLabel_change_state > 1 and self.gui.time_state == 'local_time':
-                        self.gui.timeLabel.config(text=f'{time.strftime("%H:%M:%S")}')
-                    elif self.cur_time - self.gui.timeLabel_change_state > 1:
-                        t = self.gui.counter.active_time
-                        self.gui.timeLabel.config(text=f'{int(t // 3600):02d}:{int(t // 60 % 60):02d}'
-                                                  f':{int(t%60):02d}.{int((t-int(t))*100):02d}')
-                if self.gui.is_counter_selected():
+                    self.gui.update_time()
+                if self.gui.counterList.curselection():
                     dec = False
                     try:
                         # data in the queue is a number referring to a keyboard input see on_release() for incoming data
@@ -77,7 +72,7 @@ class StartCounter:
                         elif data == 9:
                             self.gui.toggle_counter_overlay()
                         elif data == 43:
-                            UI.change_tk_label_colours(self.gui.overlayCount, '#FF0000', '#000000', True)
+                            self.gui.overlay.change_overlay_colours('#FF0000', '#000000', True)
 
                         # esc is used to disabled all controls
                         # keylogger is disabled until esc is pressed again
@@ -98,12 +93,16 @@ class StartCounter:
                         if time.time() - self.gui.last_input_time > self.gui.pause_interval:
                             self.gui.pause_run_time()
 
-                    if not self.gui.is_disabled():
+                    if not self.gui.is_disabled() and not self.gui.is_menu_opened \
+                            and not self.gui.counter.value == 'none selected':
                         # update the active counters to the current value
                         self.gui.update_gui_chance(dec=dec)
                         self.gui.score.config(text=self.gui.counter.value, font=self.gui.font[75])
-                        self.gui.overlayCount.config(text=self.gui.counter.value, font=self.gui.font[75])
-
+                else:
+                    try:
+                        self.keyboard_queue.get(block=False)
+                    except queue.Empty:
+                        pass
                 # update main window
                 self.root.update()
                 time.sleep(1 / self.gui.frame_rate)
@@ -114,12 +113,6 @@ class StartCounter:
 
     # listener for keystrokes are handled by keyboard listener so the app can work when not in focus
     def on_release(self, event):
-        # print(event.scan_code)
-        if self.gui.is_counter_selected():
-            # check for which key has been pressed and update counter object accordingly
-            if not self.gui.is_disabled() or event.scan_code in [1, 9]:
-                self.keyboard_queue.put(event.scan_code)
-
-
-if __name__ == '__main__':
-    StartCounter()
+        # check for which key has been pressed and update counter object accordingly
+        if not self.gui.is_disabled() or event.scan_code in [1, 9]:
+            self.keyboard_queue.put(event.scan_code)
