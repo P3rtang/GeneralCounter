@@ -99,8 +99,14 @@ class MainOptionMenu:
         tk.Label(self.option_menu_frame, text='Snap overlay to taskbar',
                  font=self.parent.font[20]).grid(row=2, column=1)
 
+        self.pokemon_hunt_mode_toggle = tk.BooleanVar()
+        pokemon_hunt_mode_checkbox = tk.Checkbutton(self.option_menu_frame, variable=self.pokemon_hunt_mode_toggle)
+        pokemon_hunt_mode_checkbox.grid(row=3, column=0)
+        tk.Label(self.option_menu_frame, text='Show Pokemon Hunt Chance',
+                 font=self.parent.font[20]).grid(row=3, column=1)
+
         button_frame = tk.Frame(self.option_menu_frame)
-        button_frame.grid(row=3, columnspan=2, pady=(40, 0), ipadx=150, sticky='we')
+        button_frame.grid(row=4, columnspan=2, pady=(40, 0), ipadx=150, sticky='we')
 
         close_menu = tk.Button(button_frame, text='CLOSE', font=self.parent.font[16], command=self.close_menu)
 

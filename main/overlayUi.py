@@ -1,27 +1,31 @@
 # open child window with the current value of the chosen Counter object
 from tkinter import *
 from typing import Union
-from win32api import GetMonitorInfo, MonitorFromPoint
+from sys import platform
+if platform == 'win32':
+    from win32api import GetMonitorInfo, MonitorFromPoint
 
 
 class OverlayUi:
-    def __init__(self, root_ui, data: Union[int, str]):
+    def __init__(self, root_ui, data: Union[int, str], font_size=75):
         self.root_ui = root_ui
         self.data = data
 
         self.is_active = False
+        self.font_size = font_size
         self.styles = []
 
         # used for mouse values when dragging a window
         self.click_x, self.click_y = 0, 0
 
         self.overlay = Tk()
-        self.overlay_count = Label(self.overlay, font=self.root_ui.font[75])
+        self.overlay_count = Label(self.overlay, font=self.root_ui.font[self.font_size])
         self.overlay_count.pack()
 
         self.overlay.bind('<ButtonPress-1>', self.overlay_mouse_down)
         self.overlay.bind('<B1-Motion>', self.move_overlay_to)
         self.overlay.overrideredirect(True)
+        self.overlay.attributes('-topmost', True)
         self.overlay.withdraw()
 
     def update(self, new_data):
@@ -35,8 +39,6 @@ class OverlayUi:
 
     def show(self):
         self.overlay.deiconify()
-        print(self.overlay.winfo_screenvisual())
-
         self.overlay_count.config(text=self.data)
         self.is_active = True
 
@@ -86,6 +88,12 @@ class OverlayUi:
     def overlay_mouse_down(self, event):
         # get the x, y of the mouse starting position
         self.click_x, self.click_y = event.x, event.y
+
+
+def snap_to_rect(screen_rect, window_rect):
+    for side_num, side in enumerate(window_rect):
+        if abs(side - screen_rect[side_num]) < 10:
+            return True
 
 
 if __name__ == '__main__':

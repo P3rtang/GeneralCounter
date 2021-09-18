@@ -32,7 +32,7 @@ class StartCounter:
         self.keyboard_queue = queue.Queue()
 
         # string with counter objects read by CounterRead class from './saves/counters.txt'
-        self.counters = CounterRead('.\\saves\\counters.txt').get_list()
+        self.counters = CounterRead('./saves/counters.txt').get_list()
 
         mixer.init()
 
@@ -60,12 +60,12 @@ class StartCounter:
                             self.gui.unpause_run_time()
                             self.gui.counter.value += self.gui.counter.jump
                             # play clicking sound as feedback
-                            mix_play('./bin/mouse-click-clicking-single-click.mp3')
+                            mix_play('./bin/mouse-click-clicking-single-click.wav')
                         elif data == 12:
                             self.gui.unpause_run_time()
                             self.gui.counter.value -= self.gui.counter.jump
                             # play the reverse of the clicking sound as feedback
-                            mix_play('./bin/mouse-click-clicking-reverse-click.mp3')
+                            mix_play('./bin/mouse-click-clicking-reverse-click.wav')
                             # argument for gui.update_gui_chance that indicates that the counter has decreased
                             dec = True
                         # show or hide the overlays
@@ -96,8 +96,11 @@ class StartCounter:
                     if not self.gui.is_disabled() and not self.gui.is_menu_opened \
                             and not self.gui.counter.value == 'none selected':
                         # update the active counters to the current value
-                        self.gui.update_gui_chance(dec=dec)
                         self.gui.score.config(text=self.gui.counter.value, font=self.gui.font[75])
+                        self.gui.overlay.update(self.gui.counter.value)
+                        self.gui.overlay2.update(UI.method_get_chance(self.gui.counter.method_id,
+                                                                      self.gui.counter.odds,
+                                                                      self.gui.counter.value))
                 else:
                     try:
                         self.keyboard_queue.get(block=False)

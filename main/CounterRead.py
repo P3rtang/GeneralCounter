@@ -52,6 +52,6 @@ class CounterReadIter:
 
 
 if __name__ == '__main__':
-    read = CounterRead('.\\saves\\counters.txt')
+    read = CounterRead('./saves/counters.txt')
     for index, l in enumerate(read):
         print(f'counter{index + 1}, {l}')

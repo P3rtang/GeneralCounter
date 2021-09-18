@@ -1,8 +1,12 @@
 from tkinter import *
 from tkinter import messagebox
 import time
-from win32api import GetSystemMetrics
-from win32gui import GetWindowText, GetForegroundWindow
+from sys import platform
+if platform == 'win32':
+    from win32api import GetSystemMetrics
+    from win32gui import GetWindowText, GetForegroundWindow
+elif platform == 'linux' or platform == 'linux2':
+    import screeninfo
 from PIL import ImageTk, Image
 from .Counter import Counter
 from .MainOption import MainOptionMenu, CounterOption
@@ -43,6 +47,14 @@ def dexnav_chance_dec(step, neg_chance, chain=0):
     return neg_chance
 
 
+def method_get_chance(method_id, odds, steps):
+    if type(steps) == int:
+        if method_id == 0:
+            return f'{(1 - (1 - 1 / odds) ** steps) * 100:.03f}%'
+    else:
+        return 1
+
+
 def get_highest_id(save_file, archive_file):
     """
     Function meant to return the number of counters saved in both the active save file and the archive file
@@ -63,7 +75,7 @@ def get_highest_id(save_file, archive_file):
 
 class Ui:
     # TODO: add docstring
-    def __init__(self, tk_root: Tk, saves: list, _gui_chance=None):
+    def __init__(self, tk_root: Tk, saves: list):
         # TODO: make the window respond to resizing without crashing or creating blank space
         # list to keep track of all resizable widgets to customize the layout
         self.resizable = []
@@ -177,135 +189,87 @@ class Ui:
         self.show_counter_listbox()
         self.rootW.protocol("WM_DELETE_WINDOW", self.save_quit)
 
-        self.screen_width = GetSystemMetrics(0)
-        self.screen_height = GetSystemMetrics(1)
+        from screeninfo import get_monitors
+        for monitor in get_monitors():
+            self.screen_width = monitor.width
+            self.screen_height = monitor.height
 
         self.rootW.geometry(f'+{self.screen_width // 2 - 477}+{self.screen_height // 2 - 256}')
         self.rootW.bind("<Configure>", print('window size change...WIP'))
 
         self.overlay = OverlayUi(self, self.counter.value)
+        self.overlay2 = OverlayUi(self, method_get_chance(self.counter.method_id,
+                                                          self.counter.odds,
+                                                          self.counter.value), font_size=20)
 
-        # gui 2 for extra info specific to pokemon hunting
-        self.overlay2 = Toplevel(self.rootW)
-        # used in gui2
-        self.chain = 0
-
-        self.mainFrame = Frame(self.overlay2)
-        self.mainFrame.pack()
-
-        self.chance = Label(self.mainFrame, text=0, font=("Helvetica", "25"))
-        self.chance.pack()
-
-        self.overlay2.geometry('+0+122')
-
-        self.overlay2.overrideredirect(True)  # windowless
-        self.overlay2.wm_attributes("-topmost", True)
-
-        # overlay 2
-        self.overlay2.bind('<Button-1>', self.option_menu)
-        self.overlay2.withdraw()
-
-    def option_menu(self, _counter):
-        def apply_option():
-            # changing the counter values
-            self.chain = int(set_count.get()) if set_count.get() else self.chain
-            self.chance.config(text=f'{float(self.chance["text"].split(" - ")[0]):.3f} - {self.chain}')
-
-        def reset():
-            self.chain = 0
-            self.chance.config(text=f'{0:.3f}% - {self.chain}')
-            option_menu.destroy()
-
-        option_menu = Toplevel(self.overlay2)
-
-        # reset the chance to zero with a button in the option menu
-        reset_chance = Button(option_menu, text='Reset chance to 0', font=self.font[20], command=reset)
-        reset_chance.pack()
-
-        # set the chain length from an options menu opened when clicking on the widget
-        Label(option_menu, text='set chain', font=self.font[20]).pack()
-        set_count = Entry(option_menu, font=self.font[16], justify='center')
-
-        set_count.pack()
-        set_count.focus_force()
-
-        button_frame = Frame(option_menu)
-        button_frame.pack()
-
-        cancel = Button(button_frame, text='CANCEL', font=self.font[16], command=option_menu.destroy)
-        apply = Button(button_frame, text='APPLY', font=self.font[16], command=apply_option)
-
-        cancel.grid(row=0, column=0, ipadx=8, sticky='w')
-        apply.grid(row=0, column=1, ipadx=17, sticky='e')
-
-    def update_gui_chance(self, dec=False, chain_lost=False, has_charm=False):
-        # store the method for which values need to be calculated
-        # cur_chance = self.counter.odds
-        method = self.counter.method_id
-
-        # updating the chain dependant on the input dec means decreasing and
-        # any update with chain lost sets the chain to 0 (also used when starting the gui
-        if chain_lost:
-            self.chain = 0
-        elif dec:
-            self.chain -= 1
-        else:
-            self.chain += 1
-
-        # normal random encounter with odds store in self.counter.odds method is stored in method_list
-        if method == 0 and self.counter.value:
-            cur_chance = 1 - (1 - 1 / self.counter.odds) ** self.counter.value
-            self.chance.config(text=f'{round(cur_chance * 100, 3):.3f}%')
-
-        # dexnav encounter with previous encounter odds stored in self.counter.odds
-        elif method == 1:
-            if not dec and not chain_lost:
-                self.counter.odds = dexnav_chance_inc(self.counter.value, self.counter.odds, self.chain)
-
-            if dec and not chain_lost:
-                self.counter.odds = dexnav_chance_dec(self.counter.value, self.counter.odds, self.chain)
-
-            self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}% - {self.chain}')
-
-        # SOS encounters with previous encounter odds stored in self.counter.odds
-        # this method works with rolls and is the base odds lifted to the power of the nr of rolls
-        elif method == 2:
-            rolls = 1
-            neg_chance = 4095 / 4096
-
-            if has_charm:
-                rolls += 2
-
-            if self.chain <= 10:
-                pass
-            elif self.chain <= 20:
-                rolls += 4
-            elif self.chain <= 30:
-                rolls += 8
-            elif self.chain > 70:
-                rolls += 12
-
-            # lift inverse (neg_chance) to the amount of rolls if chain lost reset it to 0
-            if not dec and not chain_lost:
-                self.counter.odds *= neg_chance ** rolls
-            elif not chain_lost:
-                self.counter.odds /= neg_chance ** rolls
-            else:
-                self.chain = 0
-            # update overlay
-            self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}% - {self.chain}')
-        # masuda method
-        elif method == 3:
-            rolls = 6
-            neg_chance = 4095/4096
-            if has_charm:
-                rolls += 2
-
-            if not dec and not chain_lost:
-                self.counter.odds *= neg_chance ** rolls
-            elif dec and not chain_lost:
-                self.counter.odds /= neg_chance ** rolls
-            self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}%')
+    # def update_gui_chance(self, dec=False, chain_lost=False, has_charm=False):
+    #     # store the method for which values need to be calculated
+    #     # cur_chance = self.counter.odds
+    #     method = self.counter.method_id
+    #
+    #     # updating the chain dependant on the input dec means decreasing and
+    #     # any update with chain lost sets the chain to 0 (also used when starting the gui
+    #     if chain_lost:
+    #         self.chain = 0
+    #     elif dec:
+    #         self.chain -= 1
+    #     else:
+    #         self.chain += 1
+    #
+    #     # normal random encounter with odds store in self.counter.odds method is stored in method_list
+    #     if method == 0 and self.counter.value:
+    #         cur_chance = 1 - (1 - 1 / self.counter.odds) ** self.counter.value
+    #         self.chance.config(text=f'{round(cur_chance * 100, 3):.3f}%')
+    #
+    #     # dexnav encounter with previous encounter odds stored in self.counter.odds
+    #     elif method == 1:
+    #         if not dec and not chain_lost:
+    #             self.counter.odds = dexnav_chance_inc(self.counter.value, self.counter.odds, self.chain)
+    #
+    #         if dec and not chain_lost:
+    #             self.counter.odds = dexnav_chance_dec(self.counter.value, self.counter.odds, self.chain)
+    #
+    #         self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}% - {self.chain}')
+    #
+    #     # SOS encounters with previous encounter odds stored in self.counter.odds
+    #     # this method works with rolls and is the base odds lifted to the power of the nr of rolls
+    #     elif method == 2:
+    #         rolls = 1
+    #         neg_chance = 4095 / 4096
+    #
+    #         if has_charm:
+    #             rolls += 2
+    #
+    #         if self.chain <= 10:
+    #             pass
+    #         elif self.chain <= 20:
+    #             rolls += 4
+    #         elif self.chain <= 30:
+    #             rolls += 8
+    #         elif self.chain > 70:
+    #             rolls += 12
+    #
+    #         # lift inverse (neg_chance) to the amount of rolls if chain lost reset it to 0
+    #         if not dec and not chain_lost:
+    #             self.counter.odds *= neg_chance ** rolls
+    #         elif not chain_lost:
+    #             self.counter.odds /= neg_chance ** rolls
+    #         else:
+    #             self.chain = 0
+    #         # update overlay
+    #         self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}% - {self.chain}')
+    #     # masuda method
+    #     elif method == 3:
+    #         rolls = 6
+    #         neg_chance = 4095/4096
+    #         if has_charm:
+    #             rolls += 2
+    #
+    #         if not dec and not chain_lost:
+    #             self.counter.odds *= neg_chance ** rolls
+    #         elif dec and not chain_lost:
+    #             self.counter.odds /= neg_chance ** rolls
+    #         self.chance.config(text=f'{round((1 - self.counter.odds) * 100, 3):.3f}%')
 
     def close_toplevel(self):
         for child in self.rootW.winfo_children():
@@ -453,7 +417,6 @@ class Ui:
         self.score.config(text='Controls\nDisabled', font=self.font[45])
         # hide all overlays when disabling the controls
         self.overlay.hide()
-        self.overlay2.withdraw()
 
     def enable(self, *_args):
         self.disabled_status = False
@@ -485,6 +448,8 @@ class Ui:
 
     def toggle_counter_overlay(self):
         self.overlay.hide() if self.overlay.is_active else self.overlay.show()
+        if self.MainOptions.pokemon_hunt_mode_toggle.get():
+            self.overlay2.hide() if self.overlay2.is_active else self.overlay2.show()
 
     def show_counter_listbox(self, *_event):
         if self.is_counter_selected():
@@ -524,9 +489,6 @@ class Ui:
 
             # save the selected counter as a single Counter object
             self.counter = self.counters[self.counterIndex]
-
-            self.update_gui_chance(chain_lost=True)
-
             self.overlay.update(self.counter.value)
 
     '''def changedWindowSize(self, _event):
